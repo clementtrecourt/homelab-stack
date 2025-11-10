@@ -9,16 +9,16 @@ La philosophie est simple : aucune configuration manuelle n'est autorisée sur l
 L'infrastructure repose sur un hyperviseur Proxmox qui héberge plusieurs conteneurs LXC, chacun avec un rôle défini :
 
 *   **LXC 100 (`lxc-100-adguard`)** : Serveur DNS. Gère le filtrage des publicités et les résolutions DNS locales pour l'ensemble du réseau.
-*   **LXC 101 (`lxc-101-nginx-proxy-manager`)** : Reverse Proxy. C'est le point d'entrée unique pour tous les services HTTP/S. Il gère la terminaison SSL et le routage des requêtes vers les bons services.
-*   **LXC 103 (`lxc-103-servarr-stack`)** : Cœur applicatif. Héberge la stack de services média (*arrs, Jellyfin) ainsi que des applications personnalisées. Une partie de ses services est routée à travers un tunnel VPN pour la confidentialité.
+*   **LXC 101 (`lxc-101-servarr`)** : Cœur applicatif. Héberge la stack de services média (*arrs, Jellyfin) ainsi que des applications personnalisées. Une partie de ses services est routée à travers un tunnel VPN pour la confidentialité.
+*   **LXC 103 (`lxc-102-reverse-proxy`)** : Reverse Proxy. C'est le point d'entrée unique pour tous les services HTTP/S. Il gère la terminaison SSL et le routage des requêtes vers les bons services.
 
 ## Structure du Dépôt
 
 Chaque dossier à la racine de ce dépôt correspond à un LXC et contient la définition de ses services via `docker-compose`.
 
 *   `lxc-100-adguard/` : Définition du service AdGuard Home.
-*   `lxc-101-nginx-proxy-manager/` : Définition du service Nginx Proxy Manager.
-*   `lxc-103-servarr-stack/` : Définition de la stack média complète, incluant le client VPN et une application custom.
+*   `lxc-101-servarr` : Définition de la stack média complète, incluant le client VPN et une application custom.
+*   `lxc-102-reverse-proxy` : Définition du service Nginx Proxy Manager.
 
 ## Déploiement
 
