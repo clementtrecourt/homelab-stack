@@ -1,8 +1,9 @@
-version: "3.7"
 services:
   adguardhome:
     image: adguard/adguardhome:latest
     container_name: adguardhome
+    environment:
+      - ADGUARD_PASSWORD_HASH=${ADGUARD_PASSWORD_HASH}
     ports:
       - "53:53/tcp"
       - "53:53/udp"
@@ -10,3 +11,8 @@ services:
       - ./work:/opt/adguardhome/work
       - ./conf:/opt/adguardhome/conf
     restart: unless-stopped
+    command: >
+      /bin/sh -c "
+      envsubst < /opt/adguardhome/conf/AdGuardHome.yaml.tpl > /opt/adguardhome/conf/AdGuardHome.yaml &&
+      /opt/adguardhome/AdGuardHome --no-check-update
+      "

@@ -3,3 +3,8 @@ work/
 
 # Ignorer les fichiers système (ex: .DS_Store sur macOS)
 .DS_Store
+# Ignorer le fichier contenant les secrets
+.env
+
+# Ignorer le fichier de configuration généré
+conf/AdGuardHome.yaml
