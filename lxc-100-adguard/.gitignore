@@ -1,0 +1,5 @@
+# Ignorer le répertoire de travail d'AdGuard
+work/
+
+# Ignorer les fichiers système (ex: .DS_Store sur macOS)
+.DS_Store
