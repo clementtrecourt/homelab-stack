@@ -1,0 +1,10 @@
+# .gitignore
+
+# Ignorer les données de configuration et la base de données de NPM
+data/
+
+# Ignorer les certificats SSL
+letsencrypt/
+
+# Fichiers système
+.DS_Store
