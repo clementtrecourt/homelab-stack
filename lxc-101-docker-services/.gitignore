@@ -1,0 +1,21 @@
+# .gitignore
+
+# Ignorer tous les dossiers de configuration et de données des services
+# Ces dossiers sont créés par Docker Compose au premier lancement
+config/
+data/
+gluetun/
+jellyfin/
+jellyseerr/
+prowlarr/
+qbittorrent/
+radarr/
+sonarr/
+
+# Pour l'application "budget", ignorer les données et les dépendances
+budget/data/
+budget/data copy/
+budget/node_modules/
+
+# Fichiers système classiques
+.DS_Store

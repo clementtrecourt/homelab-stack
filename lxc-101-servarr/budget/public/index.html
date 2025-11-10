@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Gestionnaire de Dépenses</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <style>
+        :root { --background-color: #f4f7f9; --main-text-color: #1f2937; --card-background: #ffffff; --primary-color: #3b82f6; --primary-color-dark: #2563eb; --green-color: #10b981; --red-color: #ef4444; --border-color: #e5e7eb; --shadow-color: rgba(0, 0, 0, 0.05); } 
+        body { font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--main-text-color); margin: 0; padding: 20px; } 
+        .container { max-width: 1200px; margin: 0 auto; } 
+        h1, h2, h3 { margin-top: 0; } 
+        header { display: flex; justify-content: flex-end; align-items: center; text-align: center; margin-bottom: 40px; } 
+        header h1 { font-weight: 700; font-size: 2.5rem; } 
+        .total-container { background: linear-gradient(45deg, var(--primary-color), var(--primary-color-dark)); color: white; padding: 40px; text-align: center; border-radius: 16px; margin-bottom: 40px; box-shadow: 0 10px 20px rgba(59, 130, 246, 0.2); } 
+        .total-container h2 { font-weight: 500; font-size: 1.2rem; opacity: 0.9; margin-bottom: 10px; } 
+        .total-amount { font-size: 3.5rem; font-weight: 700; } 
+        .accounts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 25px; margin-bottom: 40px; } 
+        .account { background-color: var(--card-background); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px; box-shadow: 0 4px 12px var(--shadow-color); transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.3s ease; } 
+        .account:hover { transform: translateY(-5px); box-shadow: 0 8px 16px var(--shadow-color); } 
+        .account-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; } 
+        .account-header h3 { margin: 0; font-size: 1.25rem; } 
+        .account-header-icons { display: flex; align-items: center; }
+        .account-header-icons i { color: #9ca3af; cursor: pointer; transition: color 0.2s; margin-left: 12px; font-size: 1rem; } 
+        .btn-edit-account-name:hover, .btn-toggle-visibility:hover { color: var(--primary-color); } 
+        .btn-delete-account:hover { color: var(--red-color); } 
+        .account-balance { font-weight: 600; font-size: 1.75rem; margin-bottom: 20px;} 
+        .balance-positive { color: var(--green-color); } 
+        .balance-negative { color: var(--red-color); } 
+        table { width: 100%; border-collapse: collapse; } 
+        th { text-align: left; padding: 10px 0; color: #6b7280; font-weight: 500; font-size: 0.9rem; border-bottom: 1px solid var(--border-color); } 
+        td { padding: 14px 0; border-bottom: 1px solid var(--border-color); } 
+        tr:last-child td { border-bottom: none; } 
+        .action-buttons button { background: none; border: none; cursor: pointer; font-size: 1rem; margin-left: 15px; color: #9ca3af; transition: color 0.2s; } 
+        .btn-edit:hover { color: #f59e0b; } 
+        .btn-delete:hover { color: var(--red-color); } 
+        .form-section { background-color: var(--card-background); border: 1px solid var(--border-color); padding: 30px; border-radius: 12px; } 
+        .form-section h2 { margin-bottom: 20px; } 
+        .form-group { margin-bottom: 15px; } 
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; } 
+        .form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; transition: border-color 0.2s, box-shadow 0.2s; } 
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); } 
+        .submit-button, .button-secondary { background-color: var(--primary-color); color: white; padding: 12px 20px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+        .submit-button:hover { background-color: var(--primary-color-dark); }
+        .button-secondary { background-color: #e5e7eb; color: var(--main-text-color); }
+        .button-secondary:hover { background-color: #d1d5db; }
+        .is-hidden { opacity: 0.5; }
+        .is-hidden h3, .is-hidden .account-balance, .is-hidden td { text-decoration: line-through; }
+        .modal-overlay { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background-color: var(--card-background); border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); position: relative; width: 90%; max-width: 500px; }
+        .modal-close-btn { position: absolute; top: 10px; right: 15px; font-size: 1.8rem; font-weight: bold; line-height: 1; color: #9ca3af; background: none; border: none; cursor: pointer; padding: 5px; }
+        .modal-close-btn:hover { color: var(--main-text-color); }
+
+        /* --- NOUVEAU : Styles pour l'affichage du solde partagé --- */
+        .balance-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 18px; /* Espace entre les montants et la barre */
+            margin-bottom: 20px;
+            justify-content: space-between;
+        }
+        .balance-separator {
+            border-left: 2px solid #d1d5db; /* Ligne verticale grise */
+            height: 35px; /* Hauteur de la ligne */
+        }
+        .shared-balance {
+            font-size: 1.5rem; /* Taille de police légèrement plus petite */
+            font-weight: 500;
+            opacity: 0.8; /* Légèrement moins visible */
+            color: rgba(0, 0, 0, 0.932);
+        }
+        /* On retire la marge du bas pour les soldes qui sont dans le wrapper */
+        .balance-wrapper .account-balance {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <button id="open-add-account-modal-btn" class="button-secondary"><i class="fas fa-plus"></i> Ajouter un compte</button>
+        </header>
+        <div class="total-container">
+            <h2>Solde Total (Visible)</h2>
+            <p id="total-amount" class="total-amount">0,00 €</p>
+        </div>
+        <div id="accounts-grid" class="accounts-grid"></div>
+        <div class="form-section">
+            <h2>Ajouter une transaction</h2>
+            <form id="add-transaction-form">
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <input type="text" id="description" placeholder="Ex: Facture d'électricité" required>
+                </div>
+                <div class="form-group">
+                    <label for="amount">Montant</label>
+                    <input type="number" id="amount" placeholder="Utilisez '-' pour une dépense" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="account-select">Compte</label>
+                    <select id="account-select" required></select>
+                </div>
+                <button type="submit" class="submit-button"><i class="fas fa-plus"></i> Ajouter la transaction</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="add-account-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" id="modal-close-btn">&times;</button>
+            <div class="form-section">
+                <h2>Ajouter un compte</h2>
+                <form id="add-account-form">
+                    <div class="form-group">
+                        <label for="new-account-name">Nom du nouveau compte</label>
+                        <input type="text" id="new-account-name" placeholder="Ex: Livret A" required>
+                    </div>
+                    <button type="submit" class="submit-button"><i class="fas fa-wallet"></i> Créer le compte</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let state = { accounts: [] };
+        const totalAmountEl = document.getElementById('total-amount');
+        const accountsGridEl = document.getElementById('accounts-grid');
+        const addTransactionForm = document.getElementById('add-transaction-form');
+        const descriptionInput = document.getElementById('description');
+        const amountInput = document.getElementById('amount');
+        const accountSelect = document.getElementById('account-select');
+        const addAccountForm = document.getElementById('add-account-form');
+        const newAccountNameInput = document.getElementById('new-account-name');
+        const addAccountModal = document.getElementById('add-account-modal');
+        const openAddAccountModalBtn = document.getElementById('open-add-account-modal-btn');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+
+        const API = {
+            _request: async (url, options = {}) => { let response; try { response = await fetch(url, options); } catch (error) { throw new Error("Erreur de connexion au serveur."); } if (!response.ok) { const errorData = await response.json().catch(() => ({})); throw new Error(errorData.error || `Erreur du serveur (status ${response.status})`); } if (response.status === 204) { return null; } return response.json(); },
+            getData: () => API._request('/api/data'),
+            addTransaction: (description, amount, accountId) => API._request('/api/transactions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ description, amount, accountId }) }),
+            updateTransaction: (id, description, amount) => API._request(`/api/transactions/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ description, amount }) }),
+            deleteTransaction: (id) => API._request(`/api/transactions/${id}`, { method: 'DELETE' }),
+            toggleTransactionVisibility: (id, is_hidden) => API._request(`/api/transactions/${id}/toggle-hidden`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_hidden }) }),
+            addAccount: (name) => API._request('/api/accounts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }),
+            updateAccount: (id, name) => API._request(`/api/accounts/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }),
+            deleteAccount: (id) => API._request(`/api/accounts/${id}`, { method: 'DELETE' }),
+            toggleAccountVisibility: (id, is_hidden) => API._request(`/api/accounts/${id}/toggle-hidden`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_hidden }) }),
+        };
+
+        const formatCurrency = (number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(number);
+
+        const render = () => {
+            accountsGridEl.innerHTML = '';
+            accountSelect.innerHTML = '';
+            let grandTotal = 0;
+            if (!state.accounts || state.accounts.length === 0) {
+                accountsGridEl.innerHTML = "<p>Aucun compte n'a été trouvé. Créez-en un pour commencer !</p>";
+                totalAmountEl.textContent = formatCurrency(0);
+                accountSelect.disabled = true;
+                return;
+            }
+            accountSelect.disabled = false;
+
+            state.accounts.forEach(account => {
+                const accountBalance = account.transactions.reduce((sum, tx) => sum + (tx.is_hidden ? 0 : tx.amount), 0);
+                
+                if (!account.is_hidden) {
+                    grandTotal += accountBalance;
+                }
+
+                const accountDiv = document.createElement('div');
+                accountDiv.className = `account ${account.is_hidden ? 'is-hidden' : ''}`;
+
+                const transactionsHtml = account.transactions.map(tx => {
+                    const visibilityIcon = tx.is_hidden ? 'fa-eye-slash' : 'fa-eye';
+                    const visibilityTitle = tx.is_hidden ? 'Rendre visible' : 'Masquer du calcul';
+                    return `
+                        <tr class="${tx.is_hidden ? 'is-hidden' : ''}">
+                            <td>${tx.description}</td>
+                            <td class="${tx.amount >= 0 ? 'balance-positive' : 'balance-negative'}">${formatCurrency(tx.amount)}</td>
+                            <td class="action-buttons" style="text-align: right;">
+                                <button class="btn-toggle-visibility" data-transaction-id="${tx.id}" title="${visibilityTitle}"><i class="fas ${visibilityIcon}"></i></button>
+                                <button class="btn-edit" data-transaction-id="${tx.id}" title="Modifier"><i class="fas fa-pencil-alt"></i></button>
+                                <button class="btn-delete" data-transaction-id="${tx.id}" title="Supprimer"><i class="fas fa-trash-alt"></i></button>
+                            </td>
+                        </tr>`;
+                }).join('');
+                
+                const accountVisibilityIcon = account.is_hidden ? 'fa-eye-slash' : 'fa-eye';
+                const accountVisibilityTitle = account.is_hidden ? 'Rendre visible' : 'Masquer le compte';
+                
+                // --- MODIFIÉ : On génère le HTML du solde de manière conditionnelle ---
+                const balanceClass = accountBalance >= 0 ? 'balance-positive' : 'balance-negative';
+                let balanceHtml;
+
+                if (account.name === 'Compte Joint') {
+                    const sharedAmount = accountBalance / 2;
+                    const sharedBalanceClass = sharedAmount >= 0 ? 'balance-positive' : 'balance-negative';
+                    balanceHtml = `
+                        <div class="balance-wrapper">
+                            <div class="account-balance ${balanceClass}">${formatCurrency(accountBalance)}</div>
+                            <div class="balance-separator"></div>
+                            <div class="shared-balance ${sharedBalanceClass}">${formatCurrency(sharedAmount)}</div>
+                        </div>`;
+                } else {
+                    balanceHtml = `<div class="account-balance ${balanceClass}">${formatCurrency(accountBalance)}</div>`;
+                }
+                // --- FIN DE LA MODIFICATION ---
+
+                accountDiv.innerHTML = `
+                    <div class="account-header">
+                        <h3>${account.name}</h3>
+                        <div class="account-header-icons">
+                            <i class="fas ${accountVisibilityIcon} btn-toggle-visibility" data-account-id="${account.id}" title="${accountVisibilityTitle}"></i>
+                            <i class="fas fa-pencil-alt btn-edit-account-name" data-account-id="${account.id}" title="Modifier le nom"></i>
+                            <i class="fas fa-trash-alt btn-delete-account" data-account-id="${account.id}" title="Supprimer le compte"></i>
+                        </div>
+                    </div>
+                    ${balanceHtml} <!-- On insère le HTML du solde généré ici -->
+                    <table>
+                        <tbody>${transactionsHtml || `<tr><td colspan="3" style="color:#9ca3af;">Aucune transaction.</td></tr>`}</tbody>
+                    </table>`;
+                accountsGridEl.appendChild(accountDiv);
+
+                const option = document.createElement('option');
+                option.value = account.id;
+                option.textContent = account.name;
+                accountSelect.appendChild(option);
+            });
+            totalAmountEl.textContent = formatCurrency(grandTotal);
+        };
+        
+        const refreshDataAndRender = async () => { try { const data = await API.getData(); state.accounts = data.accounts; render(); } catch (error) { console.error("Erreur de chargement des données:", error); alert(error.message); accountsGridEl.innerHTML = `<p style="color:red;">Impossible de charger les données.</p>`; } };
+        const openModal = () => { addAccountModal.style.display = 'flex'; };
+        const closeModal = () => { addAccountModal.style.display = 'none'; };
+        openAddAccountModalBtn.addEventListener('click', openModal);
+        modalCloseBtn.addEventListener('click', closeModal);
+        addAccountModal.addEventListener('click', (event) => { if (event.target === addAccountModal) { closeModal(); } });
+        addTransactionForm.addEventListener('submit', async (e) => { e.preventDefault(); if (!accountSelect.value) { alert("Veuillez d'abord créer un compte."); return; } try { await API.addTransaction(descriptionInput.value, parseFloat(amountInput.value), parseInt(accountSelect.value)); addTransactionForm.reset(); await refreshDataAndRender(); } catch (error) { alert(`Erreur: ${error.message}`); } });
+        addAccountForm.addEventListener('submit', async (e) => { e.preventDefault(); const newName = newAccountNameInput.value.trim(); if (newName) { try { await API.addAccount(newName); addAccountForm.reset(); closeModal(); await refreshDataAndRender(); } catch (error) { alert(`Erreur: ${error.message}`); } } });
+
+        accountsGridEl.addEventListener('click', async (e) => {
+            const editAccountBtn = e.target.closest('.btn-edit-account-name');
+            const deleteAccountBtn = e.target.closest('.btn-delete-account');
+            const toggleAccountBtn = e.target.closest('[data-account-id].btn-toggle-visibility');
+            const editTransactionBtn = e.target.closest('.btn-edit');
+            const deleteTransactionBtn = e.target.closest('.btn-delete');
+            const toggleTransactionBtn = e.target.closest('[data-transaction-id].btn-toggle-visibility');
+            try {
+                if (toggleAccountBtn) { const accountId = parseInt(toggleAccountBtn.dataset.accountId); const account = state.accounts.find(acc => acc.id === accountId); await API.toggleAccountVisibility(accountId, account.is_hidden ? 0 : 1); await refreshDataAndRender(); }
+                if (toggleTransactionBtn) { const transactionId = parseInt(toggleTransactionBtn.dataset.transactionId); const tx = state.accounts.flatMap(acc => acc.transactions).find(t => t.id === transactionId); await API.toggleTransactionVisibility(transactionId, tx.is_hidden ? 0 : 1); await refreshDataAndRender(); }
+                if (editAccountBtn) { const accountId = parseInt(editAccountBtn.dataset.accountId); const account = state.accounts.find(acc => acc.id === accountId); const newName = prompt("Nouveau nom du compte :", account.name); if (newName && newName.trim()) { await API.updateAccount(accountId, newName.trim()); await refreshDataAndRender(); } }
+                if (deleteAccountBtn) { const accountId = parseInt(deleteAccountBtn.dataset.accountId); if (confirm('Êtes-vous sûr ? La suppression d\'un compte effacera aussi TOUTES ses transactions.')) { await API.deleteAccount(accountId); await refreshDataAndRender(); } }
+                if (deleteTransactionBtn) { const transactionId = parseInt(deleteTransactionBtn.dataset.transactionId); if (confirm('Supprimer cette transaction ?')) { await API.deleteTransaction(transactionId); await refreshDataAndRender(); } }
+                if (editTransactionBtn) { const transactionId = parseInt(editTransactionBtn.dataset.transactionId); const tx = state.accounts.flatMap(acc => acc.transactions).find(t => t.id === transactionId); if (tx) { const newDesc = prompt('Nouvelle description :', tx.description); if (newDesc === null) return; const newAmountStr = prompt('Nouveau montant :', tx.amount); if (newAmountStr === null) return; const newAmount = parseFloat(newAmountStr); if (newDesc.trim() && !isNaN(newAmount)) { await API.updateTransaction(transactionId, newDesc.trim(), newAmount); await refreshDataAndRender(); } } }
+            } catch (error) { alert(`Erreur: ${error.message}`); }
+        });
+
+        document.addEventListener('DOMContentLoaded', refreshDataAndRender);
+    </script>
+</body>
+</html>
