@@ -1,5 +1,5 @@
 [lxc_servers]
-adguard   ansible_host=192.168.1.40
+adguard   ansible_host=192.168.1.134
 servarr   ansible_host=192.168.1.41
 nginx     ansible_host=192.168.1.42
 [proxmox_host]
@@ -7,3 +7,4 @@ pve     ansible_host=192.168.1.50
 [lxc_servers:vars]
 ansible_python_interpreter=/usr/bin/python3
 ansible_user=clem
+ansible_ssh_common_args = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'

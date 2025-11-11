@@ -17,16 +17,16 @@
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
         node: pve
-        vmid: 700
-        hostname: ansible-test-lxc-700
-        # On clone le template qui contient déjà openssh-server et votre clé
+        vmid: 100
+        hostname: adguard
         clone: 999
         cores: 1
         memory: 512
         storage: local-lvm
-        # On demande une configuration simple par DHCP
-        netif: '{"net0":"name=eth0,bridge=vmbr0,ip=dhcp"}'
+        # Corrected line below
+        netif: '{"net0":"name=eth0,gw=192.168.1.254,ip=192.168.1.30/24"}'
         state: present
+        features: '{"nesting":1, "keyctl":1}'
 
     - name: Assurer que le conteneur LXC est démarré
       community.proxmox.proxmox:
@@ -34,7 +34,7 @@
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
         node: pve
-        vmid: 700
+        vmid: 100
         state: started
 
     - name: Attendre que le LXC obtienne une adresse IP de Proxmox
@@ -42,7 +42,7 @@
         api_host: "{{ ansible_host }}"
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
-        vmid: 700
+        vmid: 100
         network: true
       register: lxc_info
       until: >
@@ -73,29 +73,106 @@
       wait_for_connection:
         timeout: 120
 
-    # === DÉBUT DE VOTRE STRATÉGIE ===
+  
     - name: Forcer la configuration du DNS en écrasant /etc/resolv.conf
       ansible.builtin.copy:
         dest: /etc/resolv.conf
         content: |
           nameserver 8.8.8.8
           nameserver 8.8.4.4
-        # On s'assure que le fichier est lisible par tous
-        mode: '0644'
-    # === FIN DE VOTRE STRATÉGIE ===
+          mode: '0644'
+         
+    - name: Bloc d'installation de Docker Engine
+      block:
+        - name: Installer les paquets prérequis pour Docker
+          ansible.builtin.apt:
+            name:
+              - apt-transport-https
+              - ca-certificates
+              - curl
+              - gnupg
+            state: present
+            update_cache: yes
 
+        - name: Créer le répertoire pour la clé GPG de Docker
+          ansible.builtin.file:
+            path: /etc/apt/keyrings
+            state: directory
+            mode: '0755'
+
+        - name: Ajouter la clé GPG officielle de Docker
+          ansible.builtin.shell:
+            cmd: curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+            # La commande ne sera pas exécutée si le fichier existe déjà
+            creates: /etc/apt/keyrings/docker.gpg
+
+        - name: Ajouter le dépôt APT de Docker
+          ansible.builtin.apt_repository:
+            repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+            state: present
+            filename: docker
+
+        - name: Installer Docker Engine et ses composants
+          ansible.builtin.apt:
+            name:
+              - docker-ce
+              - docker-ce-cli
+              - containerd.io
+              - docker-buildx-plugin
+              - docker-compose-plugin
+            state: present
+            update_cache: yes
+      tags:
+        - docker
     - name: Mettre à jour le cache APT sur le nouveau LXC
       ansible.builtin.apt:
         update_cache: yes
 
+    - name: Créer l'utilisateur 'clem' avec le mot de passe 'toor'
+      ansible.builtin.user:
+        name: clem
+        password: "{{ 'toor' | password_hash('sha512') }}"
+        shell: /bin/bash
+        state: present
+
+    - name: Ajouter 'clem' au groupe sudo pour les privilèges d'administrateur
+      ansible.builtin.user:
+        name: clem
+        groups: sudo,docker
+        append: yes
+
+    - name: "Configurer l'accès SSH par clé publique pour l'utilisateur 'clem'"
+      ansible.posix.authorized_key:
+        # L'utilisateur sur la machine distante pour qui configurer la clé
+        user: clem
+        # Le contenu de la clé publique à ajouter
+        key: "{{ lookup('file', '~/.ssh/id_ed25519.pub') }}"
+        # S'assurer que la clé est présente dans le fichier
+        state: present
     - name: Installer des paquets de base utiles
       ansible.builtin.apt:
         name:
           - htop
+          - btop
           - fastfetch
           - git
+          - tree
+          - neovim
+          - sudo
         state: present
 
     - name: Afficher un message de succès
       debug:
         msg: "Le LXC {{ inventory_hostname }} est provisionné ET configuré avec succès !"
+
+
+
+  handlers:
+    - name: Redémarrer le conteneur
+      ansible.builtin.reboot:
+        msg: "Redémarrage du conteneur pour appliquer la configuration réseau"
+        connect_timeout: 5
+        reboot_timeout: 300
+        pre_reboot_delay: 0
+        post_reboot_delay: 30
+        test_command: whoami    
