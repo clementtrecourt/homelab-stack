@@ -1,6 +1,5 @@
 # ==============================================================================
-# Playbook complet : Provisioning ET Configuration d'un LXC sur Proxmox
-# VERSION FINALE CORRIGÉE
+# Playbook avec modification directe de resolv.conf (méthode de test)
 # ==============================================================================
 
 # --- PLAY 1 : PROVISIONING ---
@@ -12,43 +11,38 @@
     - ../credentials.yml
 
   tasks:
-    # Tâche 1.1 : Assurer que le conteneur EXISTE.
-    - name: Assurer que le conteneur LXC existe
-      community.proxmox.proxmox: # Module pour GÉRER l'état (création)
+    - name: Assurer que le conteneur LXC existe en clonant le template préparé
+      community.proxmox.proxmox:
         api_host: "{{ ansible_host }}"
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
         node: pve
-        vmid: 600
-        hostname: ansible-test-lxc-600
-        password: "UnMotDePasseTresSolidePourLeLXC!"
-        ostemplate: "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst"
-        pubkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHVuzIemO1+KCAmzkHZU5PyK2LwNCvLLTOyU+S8Vu7Kt clem@arch-workstation"
+        vmid: 700
+        hostname: ansible-test-lxc-700
+        # On clone le template qui contient déjà openssh-server et votre clé
+        clone: 999
         cores: 1
         memory: 512
-        swap: 512
         storage: local-lvm
-        disk: 5
+        # On demande une configuration simple par DHCP
         netif: '{"net0":"name=eth0,bridge=vmbr0,ip=dhcp"}'
         state: present
 
-    # Tâche 1.2 : Assurer que le conteneur est DÉMARRÉ. (CORRIGÉE)
     - name: Assurer que le conteneur LXC est démarré
-      community.proxmox.proxmox: # Module pour GÉRER l'état (démarrage)
+      community.proxmox.proxmox:
         api_host: "{{ ansible_host }}"
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
         node: pve
-        vmid: 600
-        state: started # <- Paramètre correct pour démarrer
+        vmid: 700
+        state: started
 
-    # Tâche 1.3 : Attendre que le LXC obtienne une adresse IP.
     - name: Attendre que le LXC obtienne une adresse IP de Proxmox
       community.proxmox.proxmox_vm_info:
         api_host: "{{ ansible_host }}"
         api_user: "{{ proxmox_api_user }}"
         api_password: "{{ proxmox_api_password }}"
-        vmid: 600
+        vmid: 700
         network: true
       register: lxc_info
       until: >
@@ -58,39 +52,16 @@
         | first
         | selectattr('ip-address-type', 'equalto', 'inet')
         | list | length) > 0
-      retries: 10
+      retries: 20
       delay: 5
 
-    - name: Show IP address
-      debug:
-        msg: >-
-          {{
-            lxc_info.proxmox_vms[0].network
-            | selectattr('name', 'equalto', 'eth0')
-            | map(attribute='ip-addresses')
-            | first
-            | selectattr('ip-address-type', 'equalto', 'inet')
-            | map(attribute='ip-address')
-            | first
-          }}
     - name: Ajouter le nouvel LXC à l'inventaire dynamique
       add_host:
-        name: >-
-          {{
-            lxc_info.proxmox_vms[0].network
-            | selectattr('name', 'equalto', 'eth0')
-            | map(attribute='ip-addresses')
-            | first
-            | selectattr('ip-address-type', 'equalto', 'inet')
-            | map(attribute='ip-address')
-            | first
-          }}
+        name: "{{ (lxc_info.proxmox_vms[0].network | selectattr('name', 'equalto', 'eth0') | first)['ip-addresses'] | selectattr('ip-address-type', 'equalto', 'inet') | map(attribute='ip-address') | first }}"
         groups: newly_created_lxc
         ansible_user: root
-        # === DÉBUT DE LA MODIFICATION ===
-        # On SUPPRIME ansible_password, car Ansible utilisera la clé SSH par défaut
-        # On GARDE la désactivation de la vérification de la clé d'hôte
         ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+
 # --- PLAY 2 : CONFIGURATION ---
 - name: Play 2 - Configurer le LXC fraîchement créé
   hosts: newly_created_lxc
@@ -102,26 +73,28 @@
       wait_for_connection:
         timeout: 120
 
-    - name: Attendre que les verrous apt soient libérés
-      ansible.builtin.shell: "while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done;"
-      changed_when: false
+    # === DÉBUT DE VOTRE STRATÉGIE ===
+    - name: Forcer la configuration du DNS en écrasant /etc/resolv.conf
+      ansible.builtin.copy:
+        dest: /etc/resolv.conf
+        content: |
+          nameserver 8.8.8.8
+          nameserver 8.8.4.4
+        # On s'assure que le fichier est lisible par tous
+        mode: '0644'
+    # === FIN DE VOTRE STRATÉGIE ===
 
     - name: Mettre à jour le cache APT sur le nouveau LXC
       ansible.builtin.apt:
         update_cache: yes
-      environment:
-        DEBIAN_FRONTEND: noninteractive
 
     - name: Installer des paquets de base utiles
       ansible.builtin.apt:
         name:
           - htop
-          - neofetch
+          - fastfetch
           - git
         state: present
-      environment:
-        DEBIAN_FRONTEND: noninteractive
-    # === FIN DE LA CORRECTION ===
 
     - name: Afficher un message de succès
       debug:
