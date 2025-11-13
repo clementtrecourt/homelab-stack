@@ -23,13 +23,15 @@ locals {
       cores = 1
       memory = 512
       swap = 1024
+      rootfs_size = "8G" 
     }
     servarr = {
       vmid = 201
       ip   = "192.168.1.32/24"
       cores = 3             
       memory = 2861
-      swap = 1024         
+      swap = 1024
+      rootfs_size = "32G"         
     }
     nginx = {
       vmid = 202
@@ -37,6 +39,7 @@ locals {
       cores = 1
       memory = 512
       swap = 1024
+      rootfs_size = "8G" 
     }
   }
 }
@@ -54,7 +57,7 @@ resource "proxmox_lxc" "ct_group" {
   
   rootfs {
     storage = "local-lvm"
-    size    = "8G"
+    size    = each.value.rootfs_size
   }
   password = var.root_password
   ssh_public_keys = var.ssh_public_key

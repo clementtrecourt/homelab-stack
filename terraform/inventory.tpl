@@ -7,6 +7,9 @@ ${name} ansible_host=${container.ip}
 %{ endfor ~}
 [proxmox_host]
 pve ansible_host=192.168.1.50
+[proxmox_host:vars]
+ansible_user=root
+servarr_vmid=201 
 [all:vars]
 ansible_user=root
 ansible_password=${root_password}
