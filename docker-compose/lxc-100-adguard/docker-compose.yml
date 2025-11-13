@@ -12,8 +12,3 @@ services:
       - ./work:/opt/adguardhome/work
       - ./conf:/opt/adguardhome/conf
     restart: unless-stopped
-    command: >
-      /bin/sh -c "
-      envsubst < /opt/adguardhome/conf/AdGuardHome.yaml.tpl > /opt/adguardhome/conf/AdGuardHome.yaml &&
-      /opt/adguardhome/AdGuardHome --no-check-update
-      "
