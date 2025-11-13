@@ -9,3 +9,4 @@
       community.docker.docker_compose_v2:
         project_src: '/opt/homelab-stack/docker-compose/lxc-101-servarr'
         state: present
+        remove_orphans: yes
