@@ -1,0 +1,2 @@
+# ansible/group_vars/all.yml
+servarr_vmid: 201 # The VMID for your servarr container

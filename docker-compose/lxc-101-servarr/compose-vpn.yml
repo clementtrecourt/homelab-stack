@@ -6,7 +6,35 @@ networks:
         - subnet: 172.39.0.0/24
 
 services:
-  # --- GLUETUN SERVICE HAS BEEN REMOVED ---
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    networks:
+      servarrnetwork:
+        ipv4_address: 172.39.0.2
+    ports:
+      # Expose WebUIs for services running through the VPN
+      - 8080:8080   # qBittorrent WebUI
+      - 9696:9696   # Prowlarr WebUI
+      #
+      # REMOVED: The static forwarded port line.
+      # ProtonVPN's port is dynamic and opened automatically inside the container.
+      # You do not need to map it to the host here.
+      #
+    volumes:
+      - ./gluetun:/gluetun
+    env_file:
+      - .env
+    healthcheck:
+      test: ping -c 1 www.google.com || exit 1
+      interval: 20s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
 
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
@@ -16,19 +44,14 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
-      - WEBUI_PORT=8080
+      - WEBUI_PORT=8080 # Must match the port exposed in gluetun's service above
     volumes:
       - ./qbittorrent:/config
       - /media/data:/data
-    ports:
-      # Expose the WebUI directly on the host
-      - "8080:8080"
-      # Expose the torrent traffic ports (CRITICAL for functionality without VPN)
-      - "6881:6881"
-      - "6881:6881/udp"
-    networks:
-      servarrnetwork:
-        ipv4_address: 172.39.0.5 # Assign a new static IP on the network
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    network_mode: service:gluetun
 
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
@@ -40,12 +63,11 @@ services:
       - TZ=${TZ}
     volumes:
       - ./prowlarr:/config
-    ports:
-      # Expose the WebUI directly on the host
-      - "9696:9696"
-    networks:
-      servarrnetwork:
-        ipv4_address: 172.39.0.6 # Assign a new static IP on the network
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    network_mode: service:gluetun
+
 
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
@@ -57,9 +79,9 @@ services:
       - TZ=${TZ}
     volumes:
       - ./sonarr:/config
-      - /media:/media
+      - /media:/media # Sonarr needs to see the same data directory as qBittorrent
     ports:
-      - "8989:8989"
+      - 8989:8989
     networks:
       servarrnetwork:
         ipv4_address: 172.39.0.3
@@ -74,13 +96,12 @@ services:
       - TZ=${TZ}
     volumes:
       - ./radarr:/config
-      - /media:/media
+      - /media:/media # Radarr needs to see the same data directory as qBittorrent
     ports:
-      - "7878:7878"
+      - 7878:7878
     networks:
       servarrnetwork:
         ipv4_address: 172.39.0.4
-
   jellyfin:
     image: lscr.io/linuxserver/jellyfin:latest
     container_name: jellyfin
@@ -94,9 +115,9 @@ services:
     devices:
       - /dev/dri:/dev/dri #Use for Intel QuickSync
     ports:
-      - "8096:8096"
-      - "7359:7359/udp" #Service Discovery
-      - "1900:1900/udp" #Client Discovery
+      - 8096:8096
+      - 7359:7359/udp #Service Discovery
+      - 1900:1900/udp #Client Discovery
     restart: unless-stopped
 
   jellyseerr:
@@ -109,9 +130,8 @@ services:
     volumes:
       - ./jellyseerr:/app/config
     ports:
-      - "5055:5055"
+      - 5055:5055
     restart: unless-stopped
-
   gestionnaire-app:
     build: ./budget
     image: mon-gestionnaire-app
@@ -120,3 +140,4 @@ services:
       - "2000:2000"
     volumes:
       - ./budget/data:/app/data
+

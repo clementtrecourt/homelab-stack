@@ -1,0 +1,27 @@
+---
+- name: Configure Proxmox Host for Container Passthrough
+  hosts: proxmox_host
+  become: true
+
+  handlers:
+    - name: Restart servarr LXC to apply changes
+      ansible.builtin.command:
+        # THE FIX IS HERE: Changed 'restart' to 'reboot'
+        cmd: "pct reboot {{ servarr_vmid }}"
+      listen: "Restart servarr LXC"
+
+  tasks:
+      - name: "Ensure device passthrough is configured for the servarr LXC (ID: {{ servarr_vmid }})"
+        ansible.builtin.blockinfile:
+          path: "/etc/pve/lxc/{{ servarr_vmid }}.conf"
+          block: |
+            # GPU Passthrough for Jellyfin
+            lxc.cgroup2.devices.allow: c 226:0 rwm
+            lxc.cgroup2.devices.allow: c 226:128 rwm
+            lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir
+            # TUN device Passthrough for Gluetun (VPN)
+            lxc.cgroup2.devices.allow: c 10:200 rwm
+            lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
+          create: no
+          marker: "# {mark} ANSIBLE MANAGED BLOCK - DEVICE PASSTHROUGH"
+        notify: "Restart servarr LXC"

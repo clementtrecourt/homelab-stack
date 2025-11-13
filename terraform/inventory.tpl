@@ -5,7 +5,8 @@
 %{ for name, container in containers ~}
 ${name} ansible_host=${container.ip}
 %{ endfor ~}
-
+[proxmox_host]
+pve ansible_host=192.168.1.50
 [all:vars]
 ansible_user=root
 ansible_password=${root_password}

@@ -20,3 +20,11 @@
 
 - name: Install and configure Docker
   ansible.builtin.include_tasks: docker.yml
+  vars:
+    problematic_version_start: "1.7.28-2"
+- name: Add 'dk' alias for user 'clem'
+  become: true # Become root to be able to write to clem's home directory
+  ansible.builtin.lineinfile:
+    path: /home/clem/.bashrc
+    line: "alias dk='cd /opt/homelab-stack/docker-compose'"
+    create: yes

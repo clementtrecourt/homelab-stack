@@ -1,0 +1,9 @@
+---
+- name: Deploy Nginx
+  hosts: nginx
+  gather_facts: no
+  tasks:
+    - name: Start the Nginx stack with Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: '/opt/homelab-stack/docker-compose/lxc-102-reverse-proxy'
+        state: present

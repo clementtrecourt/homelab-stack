@@ -7,3 +7,8 @@
 
 - name: 2. Deploy AdGuard Home
   import_playbook: provisioning/adguard.yml 
+
+- name: 3. Deploy Nginx
+  import_playbook: provisioning/nginx.yml 
+- name: 4. Deploy Servarr
+  import_playbook: provisioning/servarr.yml 
