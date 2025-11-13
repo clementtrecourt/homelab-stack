@@ -1,0 +1,28 @@
+---
+# tasks file for roles/users
+
+- name: Ensure the sudo group is present
+  ansible.builtin.group:
+    name: sudo
+    state: present
+
+- name: Create the 'clem' user
+  ansible.builtin.user:
+    name: clem
+    comment: "Clem Administrator Account"
+    shell: /bin/bash
+    groups: sudo  # Add the user to the sudo group
+    append: yes   # Ensure we ADD the group, not replace others
+    create_home: yes
+    state: present
+    # This securely sets the password by hashing the variable from our vault
+    password: "{{ user_clem_password | password_hash('sha512') }}"
+
+- name: Allow 'clem' to run sudo without a password
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    state: present
+    regexp: '^%sudo'
+    line: '%sudo ALL=(ALL) NOPASSWD: ALL'
+    # This is a CRITICAL safety check to prevent locking yourself out.
+    validate: 'visudo -cf %s'

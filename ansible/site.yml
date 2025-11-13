@@ -1,0 +1,9 @@
+---
+- name: 1. Apply common configuration to all LXC hosts
+  hosts: lxc_hosts
+  roles:
+    - role: common
+    - role: users  
+
+- name: 2. Deploy AdGuard Home
+  import_playbook: provisioning/adguard.yml 

@@ -1,0 +1,22 @@
+---
+# tasks file for roles/common
+- name: Update apt cache and upgrade all packages
+  ansible.builtin.apt:
+    update_cache: yes
+    upgrade: dist
+    cache_valid_time: 3600
+
+- name: Install common base packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - git
+      - ufw
+      - sudo
+      - btop
+      - fastfetch
+      - python3-docker
+    state: present
+
+- name: Install and configure Docker
+  ansible.builtin.include_tasks: docker.yml
