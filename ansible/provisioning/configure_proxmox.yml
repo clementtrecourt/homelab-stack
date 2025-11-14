@@ -1,28 +1,37 @@
----
-- name: Configure Proxmox Host for Container Passthrough
+- name: Configure Common Mounts on All LXCs
   hosts: proxmox_host
   become: true
-
-  handlers:
-    - name: Restart servarr LXC to apply changes
-      ansible.builtin.command:
-        # THE FIX IS HERE: Changed 'restart' to 'reboot'
-        cmd: "pct reboot {{ servarr_vmid }}"
-      listen: "Restart servarr LXC"
+  
+  vars_files:
+    - ../group_vars/all.yml
 
   tasks:
-      - name: "Ensure device passthrough is configured for the servarr LXC (ID: {{ servarr_vmid }})"
-        ansible.builtin.blockinfile:
-          path: "/etc/pve/lxc/{{ servarr_vmid }}.conf"
-          block: |
-            # GPU Passthrough for Jellyfin
-            lxc.cgroup2.devices.allow: c 226:0 rwm
-            lxc.cgroup2.devices.allow: c 226:128 rwm
-            lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir
-            # TUN device Passthrough for Gluetun (VPN)
-            lxc.cgroup2.devices.allow: c 10:200 rwm
-            lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
-            mp0: /mnt/media_hdd,mp=/media
-          create: no
-          marker: "# {mark} ANSIBLE MANAGED LXC CONFIG"
-        notify: "Restart servarr LXC"
+    - name: "Ensure /media is mounted in all LXCs"
+      ansible.builtin.blockinfile:
+        path: "/etc/pve/lxc/{{ vmid[item] }}.conf"
+        block: |
+          mp0: /mnt/media_hdd,mp=/media
+        create: no
+        marker: "# {mark} ANSIBLE MANAGED MEDIA MOUNT"
+      loop: "{{ groups['lxc_hosts'] }}"
+      register: mount_results
+
+    - name: "Restart containers with changed mount points"
+      ansible.builtin.command:
+        cmd: "pct reboot {{ vmid[item.item] }}"
+      loop: "{{ mount_results.results }}"
+      when: item.changed
+      loop_control:
+        label: "{{ item.item }}"
+
+- name: Configure Specific Passthrough for Servarr LXC
+  hosts: proxmox_host
+  become: true
+  vars_files:
+    - ../group_vars/all.yml
+  handlers:
+    - name: Restart specific LXC
+      ansible.builtin.command:
+        cmd: "pct reboot {{ vmid[item] }}"
+      loop: "{{ groups['lxc_hosts'] }}"
+      listen: "Restart specific LXC"

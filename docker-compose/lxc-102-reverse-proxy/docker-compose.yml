@@ -9,4 +9,5 @@ services:
       - '81:81'
     volumes:
       - ./data:/data
+      - /media/docker-data/nginx:/config
       - ./letsencrypt:/etc/letsencrypt

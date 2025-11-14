@@ -9,6 +9,6 @@ services:
       - "53:53/udp"
       - "3000:3000/tcp"
     volumes:
-      - ./work:/opt/adguardhome/work
-      - ./conf:/opt/adguardhome/conf
+      - /media/docker-data/adguard/conf:/opt/adguardhome/work
+      - /media/docker-data/adguard/conf:/opt/adguardhome/conf
     restart: unless-stopped
