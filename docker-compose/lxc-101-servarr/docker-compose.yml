@@ -1,3 +1,5 @@
+# All config volumes now point to /media/docker-data/
+
 networks:
   servarrnetwork:
     name: servarrnetwork
@@ -6,8 +8,6 @@ networks:
         - subnet: 172.39.0.0/24
 
 services:
-  # --- GLUETUN SERVICE HAS BEEN REMOVED ---
-
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
@@ -18,17 +18,15 @@ services:
       - TZ=${TZ}
       - WEBUI_PORT=8080
     volumes:
-      - ./qbittorrent:/config
+      - /media/docker-data/qbittorrent:/config
       - /media/data:/data
     ports:
-      # Expose the WebUI directly on the host
       - "8080:8080"
-      # Expose the torrent traffic ports (CRITICAL for functionality without VPN)
       - "6881:6881"
       - "6881:6881/udp"
     networks:
       servarrnetwork:
-        ipv4_address: 172.39.0.5 # Assign a new static IP on the network
+        ipv4_address: 172.39.0.5
 
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
@@ -39,13 +37,12 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ./prowlarr:/config
+      - /media/docker-data/prowlarr:/config
     ports:
-      # Expose the WebUI directly on the host
       - "9696:9696"
     networks:
       servarrnetwork:
-        ipv4_address: 172.39.0.6 # Assign a new static IP on the network
+        ipv4_address: 172.39.0.6
 
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
@@ -56,7 +53,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ./sonarr:/config
+      - /media/docker-data/sonarr:/config
       - /media:/media
     ports:
       - "8989:8989"
@@ -73,7 +70,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ./radarr:/config
+      - /media/docker-data/radarr:/config
       - /media:/media
     ports:
       - "7878:7878"
@@ -89,14 +86,14 @@ services:
       - PGID=1000
       - TZ=Europe/Paris
     volumes:
-      - ./jellyfin:/config
+      - /media/docker-data/jellyfin:/config
       - /media:/media
     devices:
       - /dev/dri:/dev/dri #Use for Intel QuickSync
     ports:
       - "8096:8096"
-      - "7359:7359/udp" #Service Discovery
-      - "1900:1900/udp" #Client Discovery
+      - "7359:7359/udp"
+      - "1900:1900/udp"
     restart: unless-stopped
 
   jellyseerr:
@@ -107,7 +104,7 @@ services:
       - PGID=1000
       - TZ=Europe/Paris
     volumes:
-      - ./jellyseerr:/app/config
+      - /media/docker-data/jellyseerr:/app/config
     ports:
       - "5055:5055"
     restart: unless-stopped
@@ -119,4 +116,4 @@ services:
     ports:
       - "2000:2000"
     volumes:
-      - ./budget/data:/app/data
+      - /media/docker-data/budget/data:/app/data

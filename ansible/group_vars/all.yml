@@ -1,2 +1,4 @@
 # ansible/group_vars/all.yml
 servarr_vmid: 201 # The VMID for your servarr container
+ansible_user: 'root'
+ansible_password: 'clement2509'

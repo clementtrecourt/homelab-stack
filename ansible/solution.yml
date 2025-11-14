@@ -1,0 +1,80 @@
+# playbook-fix-containerd-auto.yml
+---
+- name: Automatically Install Correct Docker/LXC Hotfix
+  hosts: all
+  become: true
+  vars:
+    # This is the only variable you might ever need to change.
+    # It's the first version known to have the sysctl permission issue.
+    # The playbook will automatically find the latest version *older* than this one.
+    problematic_version_start: "1.7.28-2"
+
+  tasks:
+    - name: "Update apt cache to ensure we have the latest package list"
+      ansible.builtin.apt:
+        update_cache: yes
+      # We add a check here in case the machine is brand new
+      # and apt hasn't been run yet.
+      changed_when: false
+
+    - name: "Check all available versions of containerd.io"
+      ansible.builtin.shell:
+        cmd: "apt-cache madison containerd.io"
+      register: containerd_versions_raw
+      changed_when: false
+
+    - name: "Parse and find the latest valid containerd.io version"
+      block:
+        # This block processes the raw text from the shell command.
+        # 1. We get each line from the output (`stdout_lines`).
+        # 2. We create a list of just the version strings.
+        # 3. We filter that list to keep only versions older than the problematic one.
+        # 4. We select the first item from the filtered list, which is the latest good version.
+        - name: "Create a list of valid, installable versions"
+          ansible.builtin.set_fact:
+            good_versions: >
+              {{
+                containerd_versions_raw.stdout_lines
+                | map('regex_search', 'containerd.io \\| ([^ ]+)', '\\1')
+                | select('string')
+                | map('first')
+                | select('version', problematic_version_start, '<')
+                | list
+              }}
+        
+        - name: "Select the target version to install"
+          ansible.builtin.set_fact:
+            target_containerd_version: "{{ good_versions[0] }}"
+
+      rescue:
+        # This part runs only if the block above fails (e.g., list is empty).
+        - name: "Fail gracefully if no suitable older version was found"
+          ansible.builtin.fail:
+            msg: >
+              "FATAL: Could not find any version of 'containerd.io' older than the problematic
+              version '{{ problematic_version_start }}' in the apt repositories.
+              The automation cannot proceed. Please investigate the available packages on this host."
+
+    - name: "Install the automatically selected version: {{ target_containerd_version }}"
+      ansible.builtin.apt:
+        name: "containerd.io={{ target_containerd_version }}"
+        state: present
+      notify:
+        - Restart containerd
+        - Restart docker
+
+    - name: "Hold containerd.io package at the selected version"
+      ansible.builtin.dpkg_selections:
+        name: containerd.io
+        selection: hold
+
+  handlers:
+    - name: Restart containerd
+      ansible.builtin.systemd:
+        name: containerd
+        state: restarted
+
+    - name: Restart docker
+      ansible.builtin.systemd:
+        name: docker
+        state: restarted
