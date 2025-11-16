@@ -19,7 +19,7 @@ services:
       - WEBUI_PORT=8080
     volumes:
       - /media/docker-data/qbittorrent:/config
-      - /media/data:/data
+      - /media/library:/data
     ports:
       - "8080:8080"
       - "6881:6881"

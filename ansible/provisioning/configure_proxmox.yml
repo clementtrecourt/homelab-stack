@@ -1,37 +1,86 @@
-- name: Configure Common Mounts on All LXCs
+# ======================================================================
+# Play : Gérer la configuration des conteneurs sur l'hôte Proxmox
+# ======================================================================
+- name: Configure LXC Settings on Proxmox Host
   hosts: proxmox_host
   become: true
   
   vars_files:
     - ../group_vars/all.yml
+  
+  vars:
+    # UID/GID de l'utilisateur DANS les conteneurs LXC
+    lxc_user_uid: 1000
+    lxc_user_gid: 1000
 
+    # Calcul de l'UID/GID mappé sur l'hôte PVE (par défaut, Proxmox ajoute 100000)
+    host_mapped_uid: "{{ 100000 | int + lxc_user_uid | int }}"
+    host_mapped_gid: "{{ 100000 | int + lxc_user_gid | int }}"
+
+    # Chemin source sur l'hôte PVE
+    docker_data_source_path: "/media/docker-data"
+    
   tasks:
-    - name: "Ensure /media is mounted in all LXCs"
-      ansible.builtin.blockinfile:
+    # ------------------------------------------------------------------
+    # Tâche 1 : Préparer le dossier sur l'hôte PVE avec les permissions mappées
+    # ------------------------------------------------------------------
+    - name: "Ensure the Docker data directory exists on the PVE host"
+      ansible.builtin.file:
+        path: "{{ docker_data_source_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: "Ensure ownership is set to the MAPPED UID/GID on the PVE host"
+      ansible.builtin.file:
+        path: "{{ docker_data_source_path }}/"
+        owner: "{{ host_mapped_uid }}"   # <-- CORRECTION CRUCIALE
+        group: "{{ host_mapped_gid }}"   # <-- CORRECTION CRUCIALE
+        recurse: yes
+        
+    # ------------------------------------------------------------------
+    # Tâche 2 : Configurer le point de montage dans les fichiers .conf des LXC
+    # ------------------------------------------------------------------
+    - name: "Ensure /media/docker-data is mounted in all LXCs"
+      ansible.builtin.lineinfile:
         path: "/etc/pve/lxc/{{ vmid[item] }}.conf"
-        block: |
-          mp0: /mnt/media_hdd,mp=/media
-        create: no
-        marker: "# {mark} ANSIBLE MANAGED MEDIA MOUNT"
+        line: "mp0: {{ docker_data_source_path }},mp={{ docker_data_source_path }}"
+        regexp: "^mp0:"  # Assure qu'il n'y a qu'une seule ligne mp0
+        state: present
       loop: "{{ groups['lxc_hosts'] }}"
+      notify: Restart changed LXC # On notifie un handler pour le redémarrage
       register: mount_results
 
-    - name: "Restart containers with changed mount points"
+    # ------------------------------------------------------------------
+    # Tâche 3 : Configurer le passthrough GPU/TUN pour servarr (plus robuste)
+    # ------------------------------------------------------------------
+    - name: "Ensure device passthrough is configured for the servarr LXC"
+      ansible.builtin.lineinfile:
+        path: "/etc/pve/lxc/{{ vmid.servarr }}.conf"
+        line: "{{ item }}"
+        state: present
+      loop:
+        - "lxc.cgroup2.devices.allow: c 226:0 rwm"
+        - "lxc.cgroup2.devices.allow: c 226:128 rwm"
+        - "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir"
+        - "lxc.cgroup2.devices.allow: c 10:200 rwm"
+        - "lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file"
+      notify: Restart servarr LXC # Notifie un handler spécifique
+      register: passthrough_result
+
+  # ------------------------------------------------------------------
+  # Handlers : Gèrent les redémarrages à la fin du play, seulement si nécessaire
+  # ------------------------------------------------------------------
+  handlers:
+    - name: Restart changed LXC
       ansible.builtin.command:
         cmd: "pct reboot {{ vmid[item.item] }}"
       loop: "{{ mount_results.results }}"
-      when: item.changed
+      when: item.changed and item.item != 'servarr' # On ne redémarre pas servarr deux fois
       loop_control:
-        label: "{{ item.item }}"
+        label: "Restarting {{ item.item }} due to mount change"
+      listen: Restart changed LXC
 
-- name: Configure Specific Passthrough for Servarr LXC
-  hosts: proxmox_host
-  become: true
-  vars_files:
-    - ../group_vars/all.yml
-  handlers:
-    - name: Restart specific LXC
+    - name: Restart servarr LXC
       ansible.builtin.command:
-        cmd: "pct reboot {{ vmid[item] }}"
-      loop: "{{ groups['lxc_hosts'] }}"
-      listen: "Restart specific LXC"
+        cmd: "pct reboot {{ vmid.servarr }}"
+      listen: Restart servarr LXC

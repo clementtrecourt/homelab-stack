@@ -2,8 +2,9 @@
 - name: 1. Apply common configuration to all LXC hosts
   hosts: lxc_hosts
   roles:
-    - role: common
     - role: users  
+    - role: common
+    
 - name: 2. Prepare Proxmox
   import_playbook: provisioning/configure_proxmox.yml  
 - name: 3. Deploy AdGuard Home
