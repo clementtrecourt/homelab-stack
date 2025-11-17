@@ -16,6 +16,7 @@
       - btop
       - fastfetch
       - python3-docker
+      - fish
     state: present
 
 - name: Install and configure Docker

@@ -1,6 +1,5 @@
 ---
 # tasks file for roles/users
-
 - name: Ensure the sudo group is present
   ansible.builtin.group:
     name: sudo
@@ -26,3 +25,42 @@
     line: '%sudo ALL=(ALL) NOPASSWD: ALL'
     # This is a CRITICAL safety check to prevent locking yourself out.
     validate: 'visudo -cf %s'
+
+- name: Ensure fish shell is installed
+  ansible.builtin.package:
+    name: fish
+    state: present
+
+- name: Find the path to the fish executable
+  ansible.builtin.command: which fish
+  register: fish_path_result
+  changed_when: false # This command doesn't change anything, just gathers info
+  check_mode: false  # Always run this command even in check mode
+
+- name: Set fish as the default shell for the 'root' user
+  ansible.builtin.user:
+    name: root
+    shell: "{{ fish_path_result.stdout }}"
+
+# -----------------------------------------------------------------
+# TASK SET 2: Set default starting directory for root's fish shell
+# -----------------------------------------------------------------
+
+- name: Ensure the default start directory exists
+  ansible.builtin.file:
+    path: "{{ default_start_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Configure default directory for root's fish shell
+  ansible.builtin.blockinfile:
+    path: /root/.config/fish/config.fish
+    create: yes # Creates the file and directories if they don't exist
+    owner: root
+    group: root
+    mode: '0644'
+    block: |
+      # Set default directory on interactive shell start (managed by Ansible)
+      if status is-interactive
+        cd {{ default_start_dir }}
+      end

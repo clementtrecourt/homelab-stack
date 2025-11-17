@@ -3,7 +3,8 @@
   hosts: lxc_hosts
   roles:
     - role: common
-    - role: users  
+    - role: users
+          
     
     
 - name: 2. Prepare Proxmox
