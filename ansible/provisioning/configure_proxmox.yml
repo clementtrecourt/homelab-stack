@@ -53,19 +53,19 @@
     # ------------------------------------------------------------------
     # Tâche 3 : Configurer le passthrough GPU/TUN pour servarr (plus robuste)
     # ------------------------------------------------------------------
-    - name: "Ensure device passthrough is configured for the servarr LXC"
-      ansible.builtin.lineinfile:
-        path: "/etc/pve/lxc/{{ vmid.servarr }}.conf"
-        line: "{{ item }}"
-        state: present
-      loop:
-        - "lxc.cgroup2.devices.allow: c 226:0 rwm"
-        - "lxc.cgroup2.devices.allow: c 226:128 rwm"
-        - "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir"
-        - "lxc.cgroup2.devices.allow: c 10:200 rwm"
-        - "lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file"
-      notify: Restart servarr LXC # Notifie un handler spécifique
-      register: passthrough_result
+    # - name: "Ensure device passthrough is configured for the servarr LXC"
+    #   ansible.builtin.lineinfile:
+    #     path: "/etc/pve/lxc/{{ vmid.servarr }}.conf"
+    #     line: "{{ item }}"
+    #     state: present
+    #   loop:
+    #     - "lxc.cgroup2.devices.allow: c 226:0 rwm"
+    #     - "lxc.cgroup2.devices.allow: c 226:128 rwm"
+    #     - "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir"
+    #     - "lxc.cgroup2.devices.allow: c 10:200 rwm"
+    #     - "lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file"
+    #   notify: Restart servarr LXC # Notifie un handler spécifique
+    #   register: passthrough_result
 
   # ------------------------------------------------------------------
   # Handlers : Gèrent les redémarrages à la fin du play, seulement si nécessaire
