@@ -2,8 +2,9 @@
 - name: 1. Apply common configuration to all LXC hosts
   hosts: lxc_hosts
   roles:
-    - role: users  
     - role: common
+    - role: users  
+    
     
 - name: 2. Prepare Proxmox
   import_playbook: provisioning/configure_proxmox.yml  

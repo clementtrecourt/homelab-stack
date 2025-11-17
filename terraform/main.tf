@@ -14,19 +14,19 @@ provider "proxmox" {
   pm_tls_insecure     = true
   pm_debug            = true
 }
-resource "proxmox_virtual_environment_network_linux_bridge" "subnet_bridge" {
-  node_name = var.proxmox_node
-  name      = "vmbr1"
-  comment   = "Sous-réseau interne pour les conteneurs Terraform (10.20.30.0/24)"
+# resource "proxmox_virtual_environment_network_linux_bridge" "subnet_bridge" {
+#   node_name = var.proxmox_node
+#   name      = "vmbr1"
+#   comment   = "Sous-réseau interne pour les conteneurs Terraform (10.20.30.0/24)"
   
-  address   = "10.20.30.1/24" 
+#   address   = "10.20.30.1/24" 
   
-}
+# }
 locals {
   containers = {
     adguard = {
       vmid = 200
-      ip   = "10.20.30.30/24" # Nouvelle IP
+      ip   = "192.168.1.30/24" # Nouvelle IP
       cores = 1
       memory = 512
       swap = 1024
@@ -34,7 +34,7 @@ locals {
     }
     servarr = {
       vmid = 201
-      ip   = "10.20.30.31/24" # Nouvelle IP
+      ip   = "192.168.1.31/24" # Nouvelle IP
       cores = 3             
       memory = 2861
       swap = 1024
@@ -42,7 +42,7 @@ locals {
     }
     nginx = {
       vmid = 202
-      ip   = "10.20.30.32/24" # Nouvelle IP
+      ip   = "192.168.1.32/24" # Nouvelle IP
       cores = 1
       memory = 512
       swap = 1024
@@ -50,17 +50,18 @@ locals {
     }
       jenkins = {
       vmid   = 203 
-      ip     = "10.20.30.33/24"
+      ip     = "192.168.1.33/24"
       cores  = 2     
       memory = 2048  
       swap   = 2048
+      rootfs_size = "8G" 
     }
   }
 }
 
 
 resource "proxmox_lxc" "ct_group" {
-  depends_on = [proxmox_virtual_environment_network_linux_bridge.subnet_bridge]
+  # depends_on = [proxmox_virtual_environment_network_linux_bridge.subnet_bridge]
   for_each = local.containers
 
   target_node  = var.proxmox_node
@@ -79,8 +80,8 @@ resource "proxmox_lxc" "ct_group" {
   searchdomain = "local"
   network {
     name   = "eth0"
-    bridge = "vmbr1"             # On utilise le nouveau pont
-    gw     = "10.20.30.1"        # La passerelle est l'IP du pont vmbr1
+    bridge = "vmbr0"             # On utilise le nouveau pont
+    gw     = "192.168.1.254"        # La passerelle est l'IP du pont vmbr1
     ip     = each.value.ip
     ip6    = "auto"
   }
