@@ -24,7 +24,7 @@ provider "proxmox" {
 # }
 locals {
   containers = {
-    adguard = {
+    traefik = {
       vmid = 200
       ip   = "192.168.1.30/24" # Nouvelle IP
       cores = 1
@@ -40,7 +40,7 @@ locals {
       swap = 1024
       rootfs_size = "32G"         
     }
-    nginx = {
+    adguard = {
       vmid = 202
       ip   = "192.168.1.32/24" # Nouvelle IP
       cores = 1
