@@ -8,6 +8,7 @@ services:
       - "53:53/tcp"
       - "53:53/udp"
       - "3000:3000/tcp"
+      - "80:80/tcp"
     volumes:
       - /media/docker-data/adguard/work:/opt/adguardhome/work
       - /media/docker-data/adguard/conf:/opt/adguardhome/conf

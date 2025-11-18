@@ -1,0 +1,9 @@
+---
+- name: Deploy Jenkins
+  hosts: jenkins
+  gather_facts: no
+  tasks:
+    - name: Start the Jenkins with Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: '/opt/homelab-stack/docker-compose/lxc-203-jenkins'
+        state: present

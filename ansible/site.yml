@@ -8,12 +8,19 @@
     
     
 - name: 2. Prepare Proxmox
-  import_playbook: provisioning/configure_proxmox.yml  
-- name: 3. Deploy AdGuard Home
+  import_playbook: provisioning/configure_proxmox.yml 
+
+- name: 3. Deploy traefik
+  import_playbook: provisioning/traefik.yml
+  
+- name: 4. Deploy Servarr
+  import_playbook: provisioning/servarr.yml 
+
+- name: 5. Deploy Jenkins
+  import_playbook: provisioning/jenkins.yml 
+
+- name: 6. Deploy AdGuard Home
   import_playbook: provisioning/adguard.yml 
 
-- name: 4. Deploy Nginx
-  import_playbook: provisioning/nginx.yml
 
-- name: 5. Deploy Servarr
-  import_playbook: provisioning/servarr.yml 
+

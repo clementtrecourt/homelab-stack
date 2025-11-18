@@ -5,5 +5,5 @@
   tasks:
     - name: Start the AdGuard stack with Docker Compose
       community.docker.docker_compose_v2:
-        project_src: '/opt/homelab-stack/docker-compose/lxc-100-adguard'
+        project_src: '/opt/homelab-stack/docker-compose/lxc-202-adguard'
         state: present

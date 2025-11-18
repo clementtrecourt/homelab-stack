@@ -7,6 +7,6 @@
   tasks:                    
     - name: Start the Servarr stack with Docker Compose
       community.docker.docker_compose_v2:
-        project_src: '/opt/homelab-stack/docker-compose/lxc-101-servarr'
+        project_src: '/opt/homelab-stack/docker-compose/lxc-201-servarr'
         state: present
         remove_orphans: yes
