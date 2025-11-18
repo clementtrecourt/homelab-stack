@@ -69,6 +69,22 @@
       notify: Restart servarr LXC
       register: passthrough_result
 
+
+# ------------------------------------------------------------------
+    # Tâche 4 : Configurer les privilèges Docker pour Traefik (Fix v3/Proxmox)
+    # ------------------------------------------------------------------
+    - name: "Ensure Docker privileges are configured for the Traefik LXC"
+      ansible.builtin.blockinfile:
+        path: "/etc/pve/lxc/{{ vmid.traefik }}.conf"
+        state: present
+        create: yes
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - Traefik Docker Privileges"
+        block: |
+          lxc.apparmor.profile: unconfined
+          lxc.cgroup2.devices.allow: a
+          lxc.cap.drop:
+      notify: Restart traefik LXC
+
   # ------------------------------------------------------------------
   # Handlers : Gèrent les redémarrages à la fin du play, seulement si nécessaire
   # ------------------------------------------------------------------
@@ -86,3 +102,9 @@
       ansible.builtin.command:
         cmd: "pct reboot {{ vmid.servarr }}"
       listen: Restart servarr LXC
+    
+
+    - name: Restart traefik LXC
+      ansible.builtin.command:
+        cmd: "pct reboot {{ vmid.traefik }}"
+      listen: Restart traefik LXC

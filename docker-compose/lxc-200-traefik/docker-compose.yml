@@ -9,15 +9,15 @@ services:
       - "80:80"     # HTTP
       - "443:443"   # HTTPS
       - "8080:8080" # Dashboard Traefik (Web Admin)
-    volumes:
-          - /etc/localtime:/etc/localtime:ro
-          - /var/run/docker.sock:/var/run/docker.sock:ro
-          # Configuration statique
-          - /media/docker-data/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-          # Configuration dynamique (les services)
-          - /media/docker-data/traefik/dynamic:/etc/traefik/dynamic
-          # Le fichier qui stockera tes certificats SSL (CRITIQUE)
-          - /media/docker-data/traefik/acme.json:/acme.json
+  volumes:
+        - /etc/localtime:/etc/localtime:ro
+        - /var/run/docker.sock:/var/run/docker.sock:ro
+        # Configuration statique
+        - /media/docker-data/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+        # Configuration dynamique (les services)
+        - /media/docker-data/traefik/dynamic:/etc/traefik/dynamic
+        # Le fichier qui stockera tes certificats SSL (CRITIQUE)
+        - /media/docker-data/traefik/acme.json:/acme.json
     networks:
       - proxy
 

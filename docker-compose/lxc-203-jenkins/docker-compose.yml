@@ -12,8 +12,14 @@ services:
       - /media/docker-data/jenkins:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - TZ=Europe/Paris  
+      - TZ=Europe/Paris
 
-volumes:
-  jenkins_home:
-    name: jenkins_home
+  # N'OUBLIE PAS D'AJOUTER ÇA :
+  registry:
+    image: registry:2
+    container_name: docker-registry
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - /media/docker-data/registry:/var/lib/registry
