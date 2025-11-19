@@ -26,7 +26,7 @@ locals {
   containers = {
     traefik = {
       vmid = 200
-      ip   = "192.168.1.30/24" # Nouvelle IP
+      ip   = "192.168.1.30/24"
       cores = 1
       memory = 512
       swap = 1024
@@ -34,7 +34,7 @@ locals {
     }
     servarr = {
       vmid = 201
-      ip   = "192.168.1.31/24" # Nouvelle IP
+      ip   = "192.168.1.31/24"
       cores = 3             
       memory = 2861
       swap = 1024
@@ -42,7 +42,7 @@ locals {
     }
     adguard = {
       vmid = 202
-      ip   = "192.168.1.32/24" # Nouvelle IP
+      ip   = "192.168.1.32/24"
       cores = 1
       memory = 512
       swap = 1024
@@ -52,7 +52,7 @@ locals {
       vmid   = 203 
       ip     = "192.168.1.33/24"
       cores  = 2     
-      memory = 2048  
+      memory = 256  
       swap   = 2048
       rootfs_size = "8G" 
     }
