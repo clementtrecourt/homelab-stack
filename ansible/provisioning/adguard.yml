@@ -7,7 +7,7 @@
       ansible.builtin.copy:
         # 'src' est le chemin sur le BASTION (la machine qui lance Ansible)
         # 'playbook_dir' est le dossier 'ansible'. On remonte d'un cran (..) pour aller dans 'docker-compose'
-        src: "{{ playbook_dir }}/../docker-compose/lxc-202-adguard/.env"
+        src: "{{ playbook_dir }}/../../docker-compose/lxc-202-adguard/.env"
         
         # 'dest' est le chemin sur le LXC ADGUARD (la cible)
         dest: "/opt/homelab-stack/docker-compose/lxc-202-adguard/.env"
