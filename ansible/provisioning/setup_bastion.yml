@@ -1,0 +1,48 @@
+---
+- name: Configure Bastion Admin Node
+  hosts: bastion
+  become: true
+  tasks:
+    - name: Install Admin Tools
+      apt:
+        name:
+          - git
+          - curl
+          - wgetHashicorp
+          - unzip
+          - vim
+          - nano
+          - python3-pip
+          - python3-venv
+          - sshpass
+        state: present
+        update_cache: yes
+
+    - name: Add Hashicorp GPG key
+      apt_key:
+        url: https://apt.releases.hashicorp.com/gpg
+        state: present
+
+    - name: Add Hashicorp Repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
+        state: present
+
+    - name: Install Terraform
+      apt:
+        name: terraform
+        state: present
+
+    - name: Install Ansible via Pip (in venv usually, but global for bastion is ok)
+      pip:
+        name: 
+          - ansible
+          - proxmoxer
+          - requests
+        break_system_packages: true # Force install on recent Debian/Ubuntu
+
+    - name: Install Tailscale
+      shell: |
+        curl -fsSL https://tailscale.com/install.sh | sh
+      args:
+        creates: /usr/bin/tailscale

@@ -7,3 +7,19 @@
       community.docker.docker_compose_v2:
         project_src: '/opt/homelab-stack/docker-compose/lxc-203-jenkins'
         state: present
+        
+    - name: Configure Docker Daemon for Registry Access
+      ansible.builtin.copy:
+        dest: /etc/docker/daemon.json
+        content: |
+          {
+            "insecure-registries" : ["192.168.1.33:5000"]
+          }
+        mode: '0644'
+      notify: Restart Docker
+
+  handlers:
+      - name: Restart Docker
+        service:
+          name: docker
+          state: restarted
