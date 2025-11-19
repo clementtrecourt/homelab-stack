@@ -1,0 +1,20 @@
+pipeline {
+    agent any
+    
+    // On surveille GitHub toutes les 5 min
+    triggers {
+        pollSCM('H/5 * * * *') 
+    }
+
+    stages {
+        stage('Deploy on Bastion') {
+            steps {
+                script {
+                    echo "Lancement du déploiement sur le Bastion..."
+                    // On utilise la clé SSH de l'utilisateur 'jenkins' du conteneur
+                    sh "ssh -o StrictHostKeyChecking=no clem@192.168.1.20 '/home/clem/deploy_infra.sh'"
+                }
+            }
+        }
+    }
+}
