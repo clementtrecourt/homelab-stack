@@ -48,7 +48,7 @@ locals {
       swap = 1024
       rootfs_size = "8G" 
     }
-      jenkins = {
+    jenkins = {
       vmid   = 203 
       ip     = "192.168.1.33/24"
       cores  = 2     

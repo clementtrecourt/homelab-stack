@@ -4,9 +4,24 @@
   gather_facts: no             
   become: true               
 
-  tasks:                    
+  tasks:
+    - name: Configure Docker to accept Insecure Registry
+      ansible.builtin.copy:
+        dest: /etc/docker/daemon.json
+        content: |
+          {
+            "insecure-registries" : ["192.168.1.33:5000"]
+          }
+        mode: '0644'
+      notify: Restart Docker                    
     - name: Start the Servarr stack with Docker Compose
       community.docker.docker_compose_v2:
         project_src: '/opt/homelab-stack/docker-compose/lxc-201-servarr'
         state: present
         remove_orphans: yes
+
+  handlers:
+  - name: Restart Docker
+    ansible.builtin.service:
+      name: docker
+      state: restarted    
