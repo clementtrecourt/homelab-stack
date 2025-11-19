@@ -48,14 +48,6 @@ locals {
       swap = 1024
       rootfs_size = "8G" 
     }
-    jenkins = {
-      vmid   = 203 
-      ip     = "192.168.1.33/24"
-      cores  = 2     
-      memory = 256  
-      swap   = 2048
-      rootfs_size = "8G" 
-    }
   }
 }
 
@@ -98,6 +90,13 @@ resource "proxmox_lxc" "ct_group" {
   cores    = each.value.cores
   memory   = each.value.memory
   swap     = each.value.swap
+  lifecycle {
+    ignore_changes = [
+      description,
+      # On peut aussi ignorer le network si Proxmox change l'ordre des MACs,
+      # mais pour l'instant juste description suffit.
+    ]
+  }
 }
 
 # 3. The output is now much cleaner and automatically updates
