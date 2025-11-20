@@ -48,6 +48,14 @@ locals {
       swap = 1024
       rootfs_size = "8G" 
     }
+     monitoring = {
+      vmid = 204
+      ip   = "192.168.1.34/24"  # Vérifie que .34 est libre
+      cores = 2
+      memory = 2048
+      swap = 1024
+      rootfs_size = "8G"
+    }
   }
 }
 

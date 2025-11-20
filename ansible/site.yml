@@ -5,6 +5,11 @@
     - role: common
     - role: users
           
+- name: 6. Deploy Monitoring
+  import_playbook: provisioning/monitoring.yml
+
+
+
     
     
 - name: 2. Prepare Proxmox
@@ -12,14 +17,10 @@
 
 - name: 3. Deploy traefik
   import_playbook: provisioning/traefik.yml
-# - name: 5. Deploy Jenkins
-#   import_playbook: provisioning/jenkins.yml   
+
 - name: 4. Deploy Servarr
   import_playbook: provisioning/servarr.yml 
 
-
-- name: 6. Deploy AdGuard Home
+- name: 5. Deploy AdGuard Home
   import_playbook: provisioning/adguard.yml 
-
-
 

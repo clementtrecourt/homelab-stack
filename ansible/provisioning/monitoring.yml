@@ -1,0 +1,34 @@
+---
+- name: Deploy Monitoring Stack
+  hosts: monitoring
+  become: true
+  gather_facts: no
+  
+  tasks:
+    - name: Ensure config directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+        recurse: yes
+      loop:
+        - /media/docker-data/prometheus/config
+        - /media/docker-data/grafana
+
+    - name: Copy Prometheus config
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../docker-compose/lxc-204-monitoring/conf/prometheus.yml"
+        dest: /media/docker-data/prometheus/config/prometheus.yml
+        mode: '0644'
+      notify: Restart Monitoring
+
+    - name: Start Monitoring Stack
+      community.docker.docker_compose_v2:
+        project_src: '/opt/homelab-stack/docker-compose/lxc-204-monitoring'
+        state: present
+
+  handlers:
+    - name: Restart Monitoring
+      community.docker.docker_compose_v2:
+        project_src: '/opt/homelab-stack/docker-compose/lxc-204-monitoring'
+        state: restarted

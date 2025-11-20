@@ -1,0 +1,4 @@
+ansible
+passlib
+proxmoxer
+requests
