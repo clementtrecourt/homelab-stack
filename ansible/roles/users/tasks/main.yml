@@ -10,7 +10,7 @@
     name: clem
     comment: "Clem Administrator Account"
     shell: /bin/bash
-    groups: sudo  # Add the user to the sudo group
+    groups: sudo,docker  # Add the user to the sudo group
     append: yes   # Ensure we ADD the group, not replace others
     create_home: yes
     state: present

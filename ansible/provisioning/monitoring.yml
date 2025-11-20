@@ -14,7 +14,24 @@
       loop:
         - /media/docker-data/prometheus/config
         - /media/docker-data/grafana
+    - name: Ensure Grafana data directory permissions
+      ansible.builtin.file:
+        path: /media/docker-data/grafana
+        state: directory
+        owner: '472'   # UID spécifique de Grafana
+        group: '472'
+        mode: '0755'
+        recurse: yes
 
+    # Tâche pour Prometheus
+    - name: Ensure Prometheus data directory permissions
+      ansible.builtin.file:
+        path: /media/docker-data/prometheus
+        state: directory
+        owner: '65534' # UID spécifique de Prometheus (nobody)
+        group: '65534'
+        mode: '0755'
+        recurse: yes
     - name: Copy Prometheus config
       ansible.builtin.copy:
         src: "{{ playbook_dir }}/../../docker-compose/lxc-204-monitoring/conf/prometheus.yml"
