@@ -84,7 +84,17 @@
           lxc.cgroup2.devices.allow: a
           lxc.cap.drop:
       notify: Restart traefik LXC
-
+      
+    - name: "Ensure /dev/kmsg access for Monitoring LXC (Cadvisor)"
+      ansible.builtin.blockinfile:
+        path: "/etc/pve/lxc/204.conf"
+        state: present
+        create: yes
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - Monitoring kmsg"
+        block: |
+          lxc.cgroup2.devices.allow: c 1:11 rwm
+          lxc.mount.entry: /dev/kmsg dev/kmsg none bind,create=file
+      notify: Restart monitoring LXC
   # ------------------------------------------------------------------
   # Handlers : Gèrent les redémarrages à la fin du play, seulement si nécessaire
   # ------------------------------------------------------------------
