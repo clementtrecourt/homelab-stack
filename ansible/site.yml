@@ -4,13 +4,8 @@
   roles:
     - role: common
     - role: users
-          
-- name: 6. Deploy Monitoring
-  import_playbook: provisioning/monitoring.yml
-
-
-
-    
+      
+   
     
 - name: 2. Prepare Proxmox
   import_playbook: provisioning/configure_proxmox.yml 
@@ -23,4 +18,5 @@
 
 - name: 5. Deploy AdGuard Home
   import_playbook: provisioning/adguard.yml 
-
+- name: 6. Deploy Monitoring
+  import_playbook: provisioning/monitoring.yml
