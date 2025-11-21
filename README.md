@@ -245,7 +245,7 @@ La sécurité est intégrée dès la phase de conception (**Security by Design**
 
 | ID | Hostname | IP | vCPU | RAM | Rôle |
 |----|----------|-------|------|-----|------|
-| 99 | `bastion-admin` | 192.168.1.20 | 2 | 4GB | Control Plane · Terraform · Ansible |
+| 100 | `bastion-admin` | 192.168.1.20 | 2 | 4GB | Control Plane · Terraform · Ansible |
 | 200 | `traefik` | 192.168.1.30 | 2 | 2GB | Reverse Proxy · Terminaison SSL |
 | 201 | `servarr` | 192.168.1.31 | 4 | 8GB | Serveur Applications · Docker Compose |
 | 203 | `jenkins` | 192.168.1.33 | 2 | 4GB | Contrôleur CI/CD · Registre Docker |

@@ -40,7 +40,14 @@ services:
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
       - "9100:9100"
-
+  influxdb:
+    image: influxdb:2
+    container_name: influxdb
+    volumes:
+      - influxdb-config:/etc/influxdb2
+      - influxdb-data:/var/lib/influxdb2
+    ports:
+       - 8086:8086
   portainer:
     image: portainer/portainer-ce:latest
     container_name: portainer
