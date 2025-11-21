@@ -35,44 +35,83 @@ Ce projet démontre une **infrastructure de niveau production** fonctionnant dan
 L'infrastructure fonctionne sur **Proxmox VE** avec un nœud **Bastion** dédié orchestrant tous les déploiements. Aucun accès direct aux nœuds de production n'est nécessaire.
 
 ```mermaid
+%%{init: {
+  'theme': 'base', 
+  'themeVariables': { 
+    'primaryColor': '#3b4252', 
+    'primaryTextColor': '#eceff4', 
+    'primaryBorderColor': '#4c566a', 
+    'lineColor': '#88c0d0', 
+    'secondaryColor': '#2e3440', 
+    'tertiaryColor': '#434c5e', 
+    'fontFamily': 'Inter, system-ui, sans-serif'
+  }
+}}%%
+
 graph TB
-    Dev[👨‍💻 Développeur] -->|git push| GitHub[📦 Dépôt GitHub]
-    GitHub -->|webhook/polling| Jenkins[⚙️ Jenkins Controller]
+    Dev["<b>👨‍💻 Développeur</b><br/><i>Code source</i>"]
+    GitHub["<b>📦 GitHub</b><br/><i>Dépôt Git</i>"]
+    Jenkins["<b>⚙️ Jenkins</b><br/><i>Orchestrateur CI/CD</i>"]
     
-    subgraph Proxmox["🖥️ Hyperviseur Proxmox"]
-        Jenkins -->|build & push| Registry[🐳 Registre Privé]
-        Jenkins -->|déclenchement| Bastion[🛡️ Nœud Bastion]
+    subgraph Proxmox["<b>🖥️ Hyperviseur Proxmox</b>"]
+        direction TB
         
-        Bastion -->|Terraform| ProxmoxAPI((API Proxmox))
-        Bastion -->|Ansible| Production
+        Registry["<b>🐳 Registre Privé</b><br/><i>Images Docker</i>"]
+        Bastion["<b>🛡️ Bastion</b><br/><i>IaC & Configuration</i>"]
+        ProxmoxAPI(("<b>API Proxmox</b><br/><i>Provisioning</i>"))
         
-        ProxmoxAPI -.->|provisionner| Production
-        
-        subgraph Production["📦 Zone Production - LXC Non-Privilégiés"]
-            Traefik[🌐 Traefik<br/>Reverse Proxy]
-            
-            Traefik --> Apps[🚀 Applications<br/>Docker Compose]
-            Traefik --> Security[🔐 Stack Sécurité<br/>AdGuard · Authelia]
-            
-            Monitoring[📊 Observabilité<br/>Prometheus · Grafana]
-            
-            Apps -.->|métriques| Monitoring
-            Traefik -.->|métriques| Monitoring
+        subgraph Production["<b>📦 Zone Production</b><br/><i>LXC Non-Privilégiés</i>"]
+            direction LR
+            Traefik["<b>🌐 Traefik</b><br/><i>Reverse Proxy</i><br/><i>SSL/TLS</i>"]
+            Apps["<b>🚀 Applications</b><br/><i>Docker Compose</i><br/><i>Microservices</i>"]
+            Security["<b>🔐 Sécurité</b><br/><i>AdGuard</i><br/><i>Authelia</i>"]
+            Monitoring["<b>📊 Observabilité</b><br/><i>Prometheus</i><br/><i>Grafana</i><br/><i>Loki</i>"]
         end
     end
+
+    Dev -->|"<b>git push</b>"| GitHub
+    GitHub -->|"<b>webhook</b>"| Jenkins
+    Jenkins -->|"<b>build & push</b>"| Registry
+    Jenkins -->|"<b>Trigger</b>"| Bastion
     
-    style Dev fill:#2d3748,stroke:#4a5568,color:#fff
-    style GitHub fill:#24292e,stroke:#586069,color:#fff
-    style Jenkins fill:#d24939,stroke:#b83228,color:#fff
-    style Bastion fill:#4a90e2,stroke:#2e5c8a,color:#fff
-    style Registry fill:#2496ed,stroke:#1d7ac7,color:#fff
-    style ProxmoxAPI fill:#e57000,stroke:#c45f00,color:#fff
-    style Proxmox fill:#1a1a2e,stroke:#16213e,color:#fff
-    style Production fill:#0f3460,stroke:#16213e,color:#fff
-    style Traefik fill:#24a1c1,stroke:#1a7a94,color:#fff
-    style Apps fill:#0db7ed,stroke:#0a92bc,color:#fff
-    style Security fill:#f05032,stroke:#c7402a,color:#fff
-    style Monitoring fill:#f46800,stroke:#c75300,color:#fff
+    Bastion -->|"<b>Terraform</b><br/>provision infra"| ProxmoxAPI
+    Bastion -->|"<b>Ansible</b><br/>config & deploy"| Production
+    ProxmoxAPI -.->|"<b>Créer VMs/LXC</b>"| Production
+    
+    Registry -.->|"<b>pull images</b>"| Apps
+    
+    Traefik -->|"<b>Routing</b>"| Apps
+    Traefik -->|"<b>Auth</b>"| Security
+    
+    Apps -.->|"<b>Métriques</b>"| Monitoring
+    Traefik -.->|"<b>Logs</b>"| Monitoring
+    Security -.->|"<b>Alertes</b>"| Monitoring
+
+    classDef devStyle fill:#5e81ac,stroke:#81a1c1,stroke-width:2px,color:#eceff4
+    classDef githubStyle fill:#2e3440,stroke:#4c566a,stroke-width:2px,color:#eceff4
+    classDef jenkinsStyle fill:#bf616a,stroke:#d08770,stroke-width:2px,color:#eceff4
+    classDef bastionStyle fill:#5e81ac,stroke:#88c0d0,stroke-width:2px,color:#eceff4
+    classDef registryStyle fill:#81a1c1,stroke:#8fbcbb,stroke-width:2px,color:#eceff4
+    classDef apiStyle fill:#ebcb8b,stroke:#d08770,stroke-width:2px,color:#2e3440
+    classDef proxmoxStyle fill:#3b4252,stroke:#4c566a,stroke-width:2px,color:#eceff4
+    classDef prodStyle fill:#434c5e,stroke:#4c566a,stroke-width:2px,color:#eceff4
+    classDef traefikStyle fill:#8fbcbb,stroke:#88c0d0,stroke-width:2px,color:#2e3440
+    classDef appsStyle fill:#a3be8c,stroke:#8fbcbb,stroke-width:2px,color:#2e3440
+    classDef securityStyle fill:#d08770,stroke:#bf616a,stroke-width:2px,color:#eceff4
+    classDef monitoringStyle fill:#b48ead,stroke:#bf616a,stroke-width:2px,color:#eceff4
+
+    class Dev devStyle
+    class GitHub githubStyle
+    class Jenkins jenkinsStyle
+    class Bastion bastionStyle
+    class Registry registryStyle
+    class ProxmoxAPI apiStyle
+    class Proxmox proxmoxStyle
+    class Production prodStyle
+    class Traefik traefikStyle
+    class Apps appsStyle
+    class Security securityStyle
+    class Monitoring monitoringStyle
 ```
 
 ---
