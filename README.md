@@ -36,29 +36,43 @@ L'infrastructure fonctionne sur **Proxmox VE** avec un nœud **Bastion** dédié
 
 ```mermaid
 graph TB
-    Dev[👨‍💻 Développeur] -->|git push| GH[📦 Dépôt GitHub]
-    GH -->|webhook/polling| Jenkins[⚙️ Jenkins Controller]
+    Dev[👨‍💻 Développeur] -->|git push| GitHub[📦 Dépôt GitHub]
+    GitHub -->|webhook/polling| Jenkins[⚙️ Jenkins Controller]
     
     subgraph Proxmox["🖥️ Hyperviseur Proxmox"]
         Jenkins -->|build & push| Registry[🐳 Registre Privé]
         Jenkins -->|déclenchement| Bastion[🛡️ Nœud Bastion]
         
-        Bastion -->|Terraform| PVE((API Proxmox))
-        Bastion -->|Ansible| LXC_Pool
+        Bastion -->|Terraform| ProxmoxAPI((API Proxmox))
+        Bastion -->|Ansible| Production
         
-        PVE -.->|provisionner| LXC_Pool
+        ProxmoxAPI -.->|provisionner| Production
         
-        subgraph LXC_Pool["📦 Zone Production - LXC Non-Privilégiés"]
+        subgraph Production["📦 Zone Production - LXC Non-Privilégiés"]
             Traefik[🌐 Traefik<br/>Reverse Proxy]
-            Apps[🚀 Applications<br/>Docker Compose]
-            Security[🔐 Stack Sécurité<br/>AdGuard · Authelia]
+            
+            Traefik --> Apps[🚀 Applications<br/>Docker Compose]
+            Traefik --> Security[🔐 Stack Sécurité<br/>AdGuard · Authelia]
+            
             Monitoring[📊 Observabilité<br/>Prometheus · Grafana]
+            
+            Apps -.->|métriques| Monitoring
+            Traefik -.->|métriques| Monitoring
         end
     end
     
+    style Dev fill:#2d3748,stroke:#4a5568,color:#fff
+    style GitHub fill:#24292e,stroke:#586069,color:#fff
+    style Jenkins fill:#d24939,stroke:#b83228,color:#fff
     style Bastion fill:#4a90e2,stroke:#2e5c8a,color:#fff
+    style Registry fill:#2496ed,stroke:#1d7ac7,color:#fff
+    style ProxmoxAPI fill:#e57000,stroke:#c45f00,color:#fff
     style Proxmox fill:#1a1a2e,stroke:#16213e,color:#fff
-    style LXC_Pool fill:#0f3460,stroke:#16213e,color:#fff
+    style Production fill:#0f3460,stroke:#16213e,color:#fff
+    style Traefik fill:#24a1c1,stroke:#1a7a94,color:#fff
+    style Apps fill:#0db7ed,stroke:#0a92bc,color:#fff
+    style Security fill:#f05032,stroke:#c7402a,color:#fff
+    style Monitoring fill:#f46800,stroke:#c75300,color:#fff
 ```
 
 ---
@@ -192,7 +206,7 @@ La sécurité est intégrée dès la phase de conception (**Security by Design**
 
 | ID | Hostname | IP | vCPU | RAM | Rôle |
 |----|----------|-------|------|-----|------|
-| 100 | `bastion-admin` | 192.168.1.20 | 2 | 4GB | Control Plane · Terraform · Ansible |
+| 99 | `bastion-admin` | 192.168.1.20 | 2 | 4GB | Control Plane · Terraform · Ansible |
 | 200 | `traefik` | 192.168.1.30 | 2 | 2GB | Reverse Proxy · Terminaison SSL |
 | 201 | `servarr` | 192.168.1.31 | 4 | 8GB | Serveur Applications · Docker Compose |
 | 203 | `jenkins` | 192.168.1.33 | 2 | 4GB | Contrôleur CI/CD · Registre Docker |
