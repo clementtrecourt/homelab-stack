@@ -44,8 +44,8 @@ services:
     image: influxdb:2
     container_name: influxdb
     volumes:
-      - influxdb-config:/etc/influxdb2
-      - influxdb-data:/var/lib/influxdb2
+      - /media/docker-data/portainer/config:/etc/influxdb2
+      - /media/docker-data/portainer/data:/var/lib/influxdb2
     ports:
        - 8086:8086
   portainer:
