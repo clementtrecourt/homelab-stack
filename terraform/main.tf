@@ -55,57 +55,57 @@ locals {
       memory = 2048
       swap = 1024
       rootfs_size = "8G"
+      unprivileged = false
     }
   }
 }
 
 
 resource "proxmox_lxc" "ct_group" {
-  # depends_on = [proxmox_virtual_environment_network_linux_bridge.subnet_bridge]
   for_each = local.containers
 
   target_node  = var.proxmox_node
   ostemplate   = var.lxc_template
-  # password     = var.root_password
-  unprivileged = true
   start        = true
-  
+
+  unprivileged = lookup(each.value, "unprivileged", true)
+
   rootfs {
     storage = "local-lvm"
     size    = each.value.rootfs_size
   }
-  password = var.root_password
-  ssh_public_keys = var.ssh_public_key
-  nameserver   = "1.1.1.1" # Or your preferred DNS
-  searchdomain = "local"
+
+  password         = var.root_password
+  ssh_public_keys  = var.ssh_public_key
+  nameserver       = "1.1.1.1"
+  searchdomain     = "local"
+
   network {
     name   = "eth0"
-    bridge = "vmbr0"             # On utilise le nouveau pont
-    gw     = "192.168.1.254"        # La passerelle est l'IP du pont vmbr1
+    bridge = "vmbr0"
+    gw     = "192.168.1.254"
     ip     = each.value.ip
     ip6    = "auto"
   }
+
   features {
     nesting = true
   }
-  # --- Values that are unique for each container ---
-  # 'each.key' is the name (e.g., "adguard", "servarr")
-  # 'each.value' is the map of attributes for that name
-  
+
   vmid     = each.value.vmid
   hostname = each.key
   tags     = each.key
   cores    = each.value.cores
   memory   = each.value.memory
   swap     = each.value.swap
+
   lifecycle {
     ignore_changes = [
       description,
-      # On peut aussi ignorer le network si Proxmox change l'ordre des MACs,
-      # mais pour l'instant juste description suffit.
     ]
   }
 }
+
 
 # 3. The output is now much cleaner and automatically updates
 #    if you add/remove containers from the locals map.
