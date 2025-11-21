@@ -9,7 +9,7 @@ services:
       - /media/docker-data/grafana:/var/lib/grafana
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin # Change-le au premier login !
 
   prometheus:
     image: prom/prometheus:latest
@@ -24,26 +24,11 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.retention.time=15d'
 
-  cadvisor:
-    image: zcube/cadvisor:latest
-    container_name: cadvisor
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    volumes:
-      - /:/rootfs:ro
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    command:
-      - "-docker_only=true"
-      - "-housekeeping_interval=10s"
-      - "-disable_metrics=disk,tcp,udp,percpu,sched,process" # Allège la charge
-
   node-exporter:
     image: prom/node-exporter:latest
     container_name: node-exporter
     restart: unless-stopped
+    # Montage des dossiers système pour que Node Exporter puisse lire l'hôte LXC
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -55,3 +40,13 @@ services:
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
       - "9100:9100"
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /media/docker-data/portainer:/data

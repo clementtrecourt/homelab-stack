@@ -55,7 +55,6 @@ locals {
       memory = 2048
       swap = 1024
       rootfs_size = "8G"
-      unprivileged = false
     }
   }
 }

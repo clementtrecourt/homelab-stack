@@ -50,8 +50,11 @@ ansible/
   provisioning/
     adguard.yml
     configure_proxmox.yml
-    nginx.yml
+    jenkins.yml
+    monitoring.yml
     servarr.yml
+    setup_bastion.yml
+    traefik.yml
   roles/
     common/
       handlers/
@@ -72,18 +75,16 @@ ansible/
         main.yml
       tasks/
         main.yml
+  .gitignore
   ansible.cfg
   inventory.tf.ini
   README.md
+  requirements.txt
   site.yml
 docker-compose/
-  lxc-100-adguard/
-    conf/
-      AdGuardHome.tpl
-    .gitignore
+  lxc-200-traefik/
     docker-compose.yml
-    README.md
-  lxc-101-servarr/
+  lxc-201-servarr/
     budget/
       public/
         index.html
@@ -95,13 +96,19 @@ docker-compose/
     docker-compose.yml
     old-vpn.yml
     README.md
-  lxc-102-reverse-proxy/
+  lxc-202-adguard/
+    conf/
+      AdGuardHome.tpl
     .gitignore
     docker-compose.yml
     README.md
   lxc-203-jenkins/
     docker-compose.yml
     Dockerfile
+  lxc-204-monitoring/
+    conf/
+      prometheus.yml
+    docker-compose.yml
 kubernetes/
   README.md
 scripts/
@@ -125,12 +132,31 @@ terraform/
                 README.md
                 terraform-provider-proxmox_v3.0.2-rc04
   .gitignore
-  inventory.tpl
   main.tf
+  terraform.tfstate.1763584042.backup
+  terraform.tfstate.1763729225.backup
   terraform.tfstate.backup
+  variables.tf
+terraform-bastion/
+  .terraform/
+    providers/
+      registry.terraform.io/
+        telmate/
+          proxmox/
+            3.0.2-rc04/
+              linux_amd64/
+                LICENSE
+                README.md
+                terraform-provider-proxmox_v3.0.2-rc04
+  .terraform.lock.hcl
+  main.tf
+  terraform.tfstate
+  terraform.tfstate.backup
+  terraform.tfvars
   variables.tf
 .gitignore
 Jenkinsfile
+Jenkinsfile.infra
 README.md
 </directory_structure>
 
@@ -151,15 +177,15 @@ This section contains the contents of the repository's files.
 }
 </file>
 
-<file path="ansible/provisioning/nginx.yml">
+<file path="ansible/provisioning/traefik.yml">
 ---
-- name: Deploy Nginx
-  hosts: nginx
+- name: Deploy Traefik
+  hosts: traefik
   gather_facts: no
   tasks:
-    - name: Start the Nginx stack with Docker Compose
+    - name: Start Traefik with Docker Compose
       community.docker.docker_compose_v2:
-        project_src: '/opt/homelab-stack/docker-compose/lxc-102-reverse-proxy'
+        project_src: '/opt/homelab-stack/docker-compose/lxc-200-traefik'
         state: present
 </file>
 
@@ -268,253 +294,14 @@ An optional section for the role authors to include contact information, or a we
 default_start_dir: "/opt/homelab-stack/docker-compose"
 </file>
 
-<file path="docker-compose/lxc-100-adguard/conf/AdGuardHome.tpl">
-http:
-  pprof:
-    port: 6060
-    enabled: false
-  address: 0.0.0.0:80
-  session_ttl: 720h
-users:
-  - name: root
-    password: ${ADGUARD_PASSWORD_HASH} 
-auth_attempts: 5
-block_auth_min: 15
-http_proxy: ""
-language: ""
-theme: auto
-dns:
-  bind_hosts:
-    - 0.0.0.0
-  port: 53
-  anonymize_client_ip: false
-  ratelimit: 20
-  ratelimit_subnet_len_ipv4: 24
-  ratelimit_subnet_len_ipv6: 56
-  ratelimit_whitelist: []
-  refuse_any: true
-  upstream_dns:
-    - https://dns10.quad9.net/dns-query
-  upstream_dns_file: ""
-  bootstrap_dns:
-    - 9.9.9.10
-    - 149.112.112.10
-    - 2620:fe::10
-    - 2620:fe::fe:10
-  fallback_dns: []
-  upstream_mode: load_balance
-  fastest_timeout: 1s
-  allowed_clients: []
-  disallowed_clients: []
-  blocked_hosts:
-    - version.bind
-    - id.server
-    - hostname.bind
-  trusted_proxies:
-    - 127.0.0.0/8
-    - ::1/128
-  cache_enabled: true
-  cache_size: 4194304
-  cache_ttl_min: 0
-  cache_ttl_max: 0
-  cache_optimistic: false
-  bogus_nxdomain: []
-  aaaa_disabled: false
-  enable_dnssec: false
-  edns_client_subnet:
-    custom_ip: ""
-    enabled: false
-    use_custom: false
-  max_goroutines: 300
-  handle_ddr: true
-  ipset: []
-  ipset_file: ""
-  bootstrap_prefer_ipv6: false
-  upstream_timeout: 10s
-  private_networks: []
-  use_private_ptr_resolvers: true
-  local_ptr_upstreams: []
-  use_dns64: false
-  dns64_prefixes: []
-  serve_http3: false
-  use_http3_upstreams: false
-  serve_plain_dns: true
-  hostsfile_enabled: true
-  pending_requests:
-    enabled: true
-tls:
-  enabled: false
-  server_name: ""
-  force_https: false
-  port_https: 443
-  port_dns_over_tls: 853
-  port_dns_over_quic: 853
-  port_dnscrypt: 0
-  dnscrypt_config_file: ""
-  allow_unencrypted_doh: false
-  certificate_chain: ""
-  private_key: ""
-  certificate_path: ""
-  private_key_path: ""
-  strict_sni_check: false
-querylog:
-  dir_path: ""
-  ignored: []
-  interval: 2160h
-  size_memory: 1000
-  enabled: true
-  file_enabled: true
-statistics:
-  dir_path: ""
-  ignored: []
-  interval: 24h
-  enabled: true
-filters:
-  - enabled: true
-    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt
-    name: AdGuard DNS filter
-    id: 1
-  - enabled: false
-    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_2.txt
-    name: AdAway Default Blocklist
-    id: 2
-  - enabled: true
-    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_59.txt
-    name: AdGuard DNS Popup Hosts filter
-    id: 1761983005
-  - enabled: true
-    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_49.txt
-    name: HaGeZi's Ultimate Blocklist
-    id: 1761983006
-whitelist_filters: []
-user_rules: []
-dhcp:
-  enabled: false
-  interface_name: ""
-  local_domain_name: lan
-  dhcpv4:
-    gateway_ip: ""
-    subnet_mask: ""
-    range_start: ""
-    range_end: ""
-    lease_duration: 86400
-    icmp_timeout_msec: 1000
-    options: []
-  dhcpv6:
-    range_start: ""
-    lease_duration: 86400
-    ra_slaac_only: false
-    ra_allow_slaac: false
-filtering:
-  blocking_ipv4: ""
-  blocking_ipv6: ""
-  blocked_services:
-    schedule:
-      time_zone: Local
-    ids: []
-  protection_disabled_until: null
-  safe_search:
-    enabled: false
-    bing: true
-    duckduckgo: true
-    ecosia: true
-    google: true
-    pixabay: true
-    yandex: true
-    youtube: true
-  blocking_mode: default
-  parental_block_host: family-block.dns.adguard.com
-  safebrowsing_block_host: standard-block.dns.adguard.com
-  rewrites:
-    - domain: '*.local'
-      answer: 192.168.1.113
-      enabled: true
-  safe_fs_patterns:
-    - /opt/AdGuardHome/userfilters/*
-  safebrowsing_cache_size: 1048576
-  safesearch_cache_size: 1048576
-  parental_cache_size: 1048576
-  cache_time: 30
-  filters_update_interval: 24
-  blocked_response_ttl: 10
-  filtering_enabled: true
-  rewrites_enabled: true
-  parental_enabled: true
-  safebrowsing_enabled: true
-  protection_enabled: true
-clients:
-  runtime_sources:
-    whois: true
-    arp: true
-    rdns: true
-    dhcp: true
-    hosts: true
-  persistent: []
-log:
-  enabled: true
-  file: ""
-  max_backups: 0
-  max_size: 100
-  max_age: 3
-  compress: false
-  local_time: false
-  verbose: false
-os:
-  group: ""
-  user: ""
-  rlimit_nofile: 0
-schema_version: 31
+<file path="ansible/requirements.txt">
+ansible
+passlib
+proxmoxer
+requests
 </file>
 
-<file path="docker-compose/lxc-100-adguard/.gitignore">
-# Ignorer le répertoire de travail d'AdGuard
-work/
-
-# Ignorer les fichiers système (ex: .DS_Store sur macOS)
-.DS_Store
-# Ignorer le fichier contenant les secrets
-.env
-
-# Ignorer le fichier de configuration généré
-conf/AdGuardHome.yaml
-</file>
-
-<file path="docker-compose/lxc-100-adguard/README.md">
-# Service AdGuard Home
-
-Ce dossier contient la configuration pour déployer le service de filtrage DNS [AdGuard Home](https://adguard.com/fr/adguard-home/overview.html) via Docker Compose.
-
-## Rôle
-
-AdGuard Home fournit un service de filtrage DNS pour tout le réseau domestique, bloquant les publicités et les traqueurs. Il sert également de serveur DNS local.
-
-## Configuration Requise
-
-Ce service gère son mot de passe de manière sécurisée en utilisant un template et une variable d'environnement.
-
-1.  Créez un fichier `.env` à la racine de ce dossier.
-2.  Ajoutez-y la variable suivante avec le hash de votre mot de passe (généré par AdGuard ou via `htpasswd`) :
-
-    ```env
-    # .env
-    ADGUARD_PASSWORD_HASH='votre_hash_ici'
-    ```
-
-Le fichier `docker-compose.yml` utilise ensuite ce template pour générer le fichier de configuration final au démarrage du conteneur.
-
-## Déploiement
-
-```bash
-docker-compose up -d
-```
-
-## Accès
-
-*   **Interface Web** : `http://<IP_DU_LXC>:PORT` (selon les ports que vous avez mappés pour l'UI).
-*   **Serveur DNS** : `<IP_DU_LXC>` sur le port `53`.
-</file>
-
-<file path="docker-compose/lxc-101-servarr/budget/public/index.html">
+<file path="docker-compose/lxc-201-servarr/budget/public/index.html">
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -783,7 +570,7 @@ docker-compose up -d
 </html>
 </file>
 
-<file path="docker-compose/lxc-101-servarr/budget/Dockerfile">
+<file path="docker-compose/lxc-201-servarr/budget/Dockerfile">
 # Étape 1: Choisir une image de base légère avec Node.js
 FROM node:18-alpine
 
@@ -809,7 +596,7 @@ EXPOSE 2000
 CMD ["node", "server.js"]
 </file>
 
-<file path="docker-compose/lxc-101-servarr/budget/package.json">
+<file path="docker-compose/lxc-201-servarr/budget/package.json">
 {
   "name": "mon-gestionnaire",
   "version": "1.0.0",
@@ -827,7 +614,7 @@ CMD ["node", "server.js"]
 }
 </file>
 
-<file path="docker-compose/lxc-101-servarr/budget/server.js">
+<file path="docker-compose/lxc-201-servarr/budget/server.js">
 // Fichier: server.js (version corrigée et complète)
 
 const express = require('express');
@@ -990,7 +777,7 @@ app.listen(PORT, () => {
 });
 </file>
 
-<file path="docker-compose/lxc-101-servarr/.env">
+<file path="docker-compose/lxc-201-servarr/.env">
 # .env
 # Ce fichier contient les secrets et la configuration spécifique à l'environnement.
 # Il DOIT être listé dans le .gitignore.
@@ -1021,7 +808,7 @@ SERVER_COUNTRIES=France
 SERVER_CITIES=Marseille
 </file>
 
-<file path="docker-compose/lxc-101-servarr/.gitignore">
+<file path="docker-compose/lxc-201-servarr/.gitignore">
 # .gitignore
 
 # Ignorer tous les dossiers de configuration et de données des services
@@ -1045,7 +832,7 @@ budget/node_modules/
 .DS_Store
 </file>
 
-<file path="docker-compose/lxc-101-servarr/old-vpn.yml">
+<file path="docker-compose/lxc-201-servarr/old-vpn.yml">
 networks:
   servarrnetwork:
     name: servarrnetwork
@@ -1190,7 +977,7 @@ services:
       - ./budget/data:/app/data
 </file>
 
-<file path="docker-compose/lxc-101-servarr/README.md">
+<file path="docker-compose/lxc-201-servarr/README.md">
 # Stack de Services Média (*arrs, Jellyfin)
 
 Ce dossier contient la configuration Docker Compose pour une stack média complète, automatisée et sécurisée.
@@ -1257,34 +1044,239 @@ docker-compose up -d
 *   **Sauvegarde** : Tous les dossiers de configuration (`./sonarr`, `./radarr`, etc.) sont ignorés par Git. Ils contiennent l'état des applications et doivent faire l'objet d'une **sauvegarde régulière**.````
 </file>
 
-<file path="docker-compose/lxc-102-reverse-proxy/.gitignore">
-# .gitignore
-
-# Ignorer les données de configuration et la base de données de NPM
-data/
-
-# Ignorer les certificats SSL
-letsencrypt/
-
-# Fichiers système
-.DS_Store
+<file path="docker-compose/lxc-202-adguard/conf/AdGuardHome.tpl">
+http:
+  pprof:
+    port: 6060
+    enabled: false
+  address: 0.0.0.0:80
+  session_ttl: 720h
+users:
+  - name: root
+    password: ${ADGUARD_PASSWORD_HASH} 
+auth_attempts: 5
+block_auth_min: 15
+http_proxy: ""
+language: ""
+theme: auto
+dns:
+  bind_hosts:
+    - 0.0.0.0
+  port: 53
+  anonymize_client_ip: false
+  ratelimit: 20
+  ratelimit_subnet_len_ipv4: 24
+  ratelimit_subnet_len_ipv6: 56
+  ratelimit_whitelist: []
+  refuse_any: true
+  upstream_dns:
+    - https://dns10.quad9.net/dns-query
+  upstream_dns_file: ""
+  bootstrap_dns:
+    - 9.9.9.10
+    - 149.112.112.10
+    - 2620:fe::10
+    - 2620:fe::fe:10
+  fallback_dns: []
+  upstream_mode: load_balance
+  fastest_timeout: 1s
+  allowed_clients: []
+  disallowed_clients: []
+  blocked_hosts:
+    - version.bind
+    - id.server
+    - hostname.bind
+  trusted_proxies:
+    - 127.0.0.0/8
+    - ::1/128
+  cache_enabled: true
+  cache_size: 4194304
+  cache_ttl_min: 0
+  cache_ttl_max: 0
+  cache_optimistic: false
+  bogus_nxdomain: []
+  aaaa_disabled: false
+  enable_dnssec: false
+  edns_client_subnet:
+    custom_ip: ""
+    enabled: false
+    use_custom: false
+  max_goroutines: 300
+  handle_ddr: true
+  ipset: []
+  ipset_file: ""
+  bootstrap_prefer_ipv6: false
+  upstream_timeout: 10s
+  private_networks: []
+  use_private_ptr_resolvers: true
+  local_ptr_upstreams: []
+  use_dns64: false
+  dns64_prefixes: []
+  serve_http3: false
+  use_http3_upstreams: false
+  serve_plain_dns: true
+  hostsfile_enabled: true
+  pending_requests:
+    enabled: true
+tls:
+  enabled: false
+  server_name: ""
+  force_https: false
+  port_https: 443
+  port_dns_over_tls: 853
+  port_dns_over_quic: 853
+  port_dnscrypt: 0
+  dnscrypt_config_file: ""
+  allow_unencrypted_doh: false
+  certificate_chain: ""
+  private_key: ""
+  certificate_path: ""
+  private_key_path: ""
+  strict_sni_check: false
+querylog:
+  dir_path: ""
+  ignored: []
+  interval: 2160h
+  size_memory: 1000
+  enabled: true
+  file_enabled: true
+statistics:
+  dir_path: ""
+  ignored: []
+  interval: 24h
+  enabled: true
+filters:
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt
+    name: AdGuard DNS filter
+    id: 1
+  - enabled: false
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_2.txt
+    name: AdAway Default Blocklist
+    id: 2
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_59.txt
+    name: AdGuard DNS Popup Hosts filter
+    id: 1761983005
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_49.txt
+    name: HaGeZi's Ultimate Blocklist
+    id: 1761983006
+whitelist_filters: []
+user_rules: []
+dhcp:
+  enabled: false
+  interface_name: ""
+  local_domain_name: lan
+  dhcpv4:
+    gateway_ip: ""
+    subnet_mask: ""
+    range_start: ""
+    range_end: ""
+    lease_duration: 86400
+    icmp_timeout_msec: 1000
+    options: []
+  dhcpv6:
+    range_start: ""
+    lease_duration: 86400
+    ra_slaac_only: false
+    ra_allow_slaac: false
+filtering:
+  blocking_ipv4: ""
+  blocking_ipv6: ""
+  blocked_services:
+    schedule:
+      time_zone: Local
+    ids: []
+  protection_disabled_until: null
+  safe_search:
+    enabled: false
+    bing: true
+    duckduckgo: true
+    ecosia: true
+    google: true
+    pixabay: true
+    yandex: true
+    youtube: true
+  blocking_mode: default
+  parental_block_host: family-block.dns.adguard.com
+  safebrowsing_block_host: standard-block.dns.adguard.com
+  rewrites:
+    - domain: '*.local'
+      answer: 192.168.1.113
+      enabled: true
+  safe_fs_patterns:
+    - /opt/AdGuardHome/userfilters/*
+  safebrowsing_cache_size: 1048576
+  safesearch_cache_size: 1048576
+  parental_cache_size: 1048576
+  cache_time: 30
+  filters_update_interval: 24
+  blocked_response_ttl: 10
+  filtering_enabled: true
+  rewrites_enabled: true
+  parental_enabled: true
+  safebrowsing_enabled: true
+  protection_enabled: true
+clients:
+  runtime_sources:
+    whois: true
+    arp: true
+    rdns: true
+    dhcp: true
+    hosts: true
+  persistent: []
+log:
+  enabled: true
+  file: ""
+  max_backups: 0
+  max_size: 100
+  max_age: 3
+  compress: false
+  local_time: false
+  verbose: false
+os:
+  group: ""
+  user: ""
+  rlimit_nofile: 0
+schema_version: 31
 </file>
 
-<file path="docker-compose/lxc-102-reverse-proxy/README.md">
-# Service Nginx Proxy Manager (Reverse Proxy)
+<file path="docker-compose/lxc-202-adguard/.gitignore">
+# Ignorer le répertoire de travail d'AdGuard
+work/
 
-Ce dossier contient la configuration pour déployer [Nginx Proxy Manager](https://nginxproxymanager.com/) via Docker Compose.
+# Ignorer les fichiers système (ex: .DS_Store sur macOS)
+.DS_Store
+# Ignorer le fichier contenant les secrets
+.env
+
+# Ignorer le fichier de configuration généré
+conf/AdGuardHome.yaml
+</file>
+
+<file path="docker-compose/lxc-202-adguard/README.md">
+# Service AdGuard Home
+
+Ce dossier contient la configuration pour déployer le service de filtrage DNS [AdGuard Home](https://adguard.com/fr/adguard-home/overview.html) via Docker Compose.
 
 ## Rôle
 
-Ce service est le point d'entrée unique pour tout le trafic HTTP/S. Il agit comme un reverse proxy, gérant :
-*   La terminaison des connexions SSL/TLS.
-*   La génération et le renouvellement automatique des certificats Let's Encrypt.
-*   Le routage des requêtes vers les services internes appropriés.
+AdGuard Home fournit un service de filtrage DNS pour tout le réseau domestique, bloquant les publicités et les traqueurs. Il sert également de serveur DNS local.
 
 ## Configuration Requise
 
-Ce service ne nécessite aucune variable d'environnement dans un fichier `.env`. Toute la configuration se fait via l'interface web.
+Ce service gère son mot de passe de manière sécurisée en utilisant un template et une variable d'environnement.
+
+1.  Créez un fichier `.env` à la racine de ce dossier.
+2.  Ajoutez-y la variable suivante avec le hash de votre mot de passe (généré par AdGuard ou via `htpasswd`) :
+
+    ```env
+    # .env
+    ADGUARD_PASSWORD_HASH='votre_hash_ici'
+    ```
+
+Le fichier `docker-compose.yml` utilise ensuite ce template pour générer le fichier de configuration final au démarrage du conteneur.
 
 ## Déploiement
 
@@ -1294,11 +1286,8 @@ docker-compose up -d
 
 ## Accès
 
-*   **Interface d'administration** : `http://<IP_DU_LXC>:81`
-
-## Sauvegarde (Important)
-
-La configuration de ce service (hôtes, certificats) est stockée dans les volumes `data/` et `letsencrypt/`. Ces dossiers sont **ignorés par Git** et doivent faire l'objet d'une **sauvegarde régulière** pour pouvoir restaurer le service en cas de problème.
+*   **Interface Web** : `http://<IP_DU_LXC>:PORT` (selon les ports que vous avez mappés pour l'UI).
+*   **Serveur DNS** : `<IP_DU_LXC>` sur le port `53`.
 </file>
 
 <file path="docker-compose/lxc-203-jenkins/Dockerfile">
@@ -1860,10 +1849,1070 @@ see: [Debugger-Based Debugging](https://www.terraform.io/docs/extend/debugging.h
 * [Recommended ISO builder](https://github.com/Telmate/terraform-ubuntu-proxmox-iso)
 </file>
 
-<file path="terraform/.gitignore">
-terraform.tfvars
-.terraform.lock.hcl
-terraform.tfstate
+<file path="terraform/terraform.tfstate.1763584042.backup">
+{
+  "version": 4,
+  "terraform_version": "1.13.5",
+  "serial": 27,
+  "lineage": "7c2dd8b7-598d-5e13-9ad0-9e17f8a1d62e",
+  "outputs": {
+    "container_details": {
+      "value": {
+        "adguard": {
+          "ip": "192.168.1.32"
+        },
+        "jenkins": {
+          "ip": "192.168.1.33"
+        },
+        "servarr": {
+          "ip": "192.168.1.31"
+        },
+        "traefik": {
+          "ip": "192.168.1.30"
+        }
+      },
+      "type": [
+        "object",
+        {
+          "adguard": [
+            "object",
+            {
+              "ip": "string"
+            }
+          ],
+          "jenkins": [
+            "object",
+            {
+              "ip": "string"
+            }
+          ],
+          "servarr": [
+            "object",
+            {
+              "ip": "string"
+            }
+          ],
+          "traefik": [
+            "object",
+            {
+              "ip": "string"
+            }
+          ]
+        }
+      ],
+      "sensitive": true
+    }
+  },
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "local_file",
+      "name": "ansible_inventory",
+      "provider": "provider[\"registry.terraform.io/hashicorp/local\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "content": "# This file is automatically generated by Terraform.\n# Do not edit manually!\n\n[lxc_hosts]\nadguard ansible_host=192.168.1.32\njenkins ansible_host=192.168.1.33\nservarr ansible_host=192.168.1.31\ntraefik ansible_host=192.168.1.30\n[proxmox_host]\npve ansible_host=100.101.186.10\n[proxmox_host:vars]\nansible_user=root\nservarr_vmid=201 \n[all:vars]\nansible_user=root\nansible_password=clement2509\nansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'",
+            "content_base64": null,
+            "content_base64sha256": "Ue6YOJTuowtH2O71lMTgG5IMfnqO3EC0UnvkoCDSWYk=",
+            "content_base64sha512": "ldqWSeGGTq8jOYLz8gPQVbFTik4pyLQbAbbi0TGsmUp3coadPEOpAEDjYY91MB0HSBTVmnw1pGGNZhCTTespBw==",
+            "content_md5": "c7963f42cb32d02b811f8192437613f8",
+            "content_sha1": "3cdec83ed22af84b226eb9e9bf5d26682a6fb5be",
+            "content_sha256": "51ee983894eea30b47d8eef594c4e01b920c7e7a8edc40b4527be4a020d25989",
+            "content_sha512": "95da9649e1864eaf233982f3f203d055b1538a4e29c8b41b01b6e2d131ac994a7772869d3c43a90040e3618f75301d074814d59a7c35a4618d6610934deb2907",
+            "directory_permission": "0777",
+            "file_permission": "0777",
+            "filename": "./../ansible/inventory.tf.ini",
+            "id": "3cdec83ed22af84b226eb9e9bf5d26682a6fb5be",
+            "sensitive_content": null,
+            "source": null
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "content"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "sensitive_content"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "dependencies": [
+            "proxmox_lxc.ct_group"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "proxmox_lxc",
+      "name": "ct_group",
+      "provider": "provider[\"registry.terraform.io/telmate/proxmox\"]",
+      "instances": [
+        {
+          "index_key": "adguard",
+          "schema_version": 0,
+          "attributes": {
+            "arch": "amd64",
+            "bwlimit": 0,
+            "clone": null,
+            "clone_storage": null,
+            "cmode": "tty",
+            "console": true,
+            "cores": 1,
+            "cpulimit": 0,
+            "cpuunits": 1024,
+            "current_node": "pve",
+            "description": "",
+            "features": [
+              {
+                "fuse": false,
+                "keyctl": false,
+                "mknod": false,
+                "mount": "",
+                "nesting": true
+              }
+            ],
+            "force": false,
+            "full": null,
+            "hagroup": "",
+            "hastate": "",
+            "hookscript": "",
+            "hostname": "adguard",
+            "id": "pve/lxc/202",
+            "ignore_unpack_errors": false,
+            "lock": "",
+            "memory": 512,
+            "mountpoint": [],
+            "nameserver": "1.1.1.1",
+            "network": [
+              {
+                "bridge": "vmbr0",
+                "firewall": false,
+                "gw": "192.168.1.254",
+                "gw6": "",
+                "hwaddr": "BC:24:11:A6:5C:65",
+                "id": 0,
+                "ip": "192.168.1.32/24",
+                "ip6": "auto",
+                "mtu": 0,
+                "name": "eth0",
+                "rate": 0,
+                "tag": 0,
+                "trunks": "",
+                "type": "veth"
+              }
+            ],
+            "onboot": false,
+            "ostemplate": "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst",
+            "ostype": "debian",
+            "password": "clement2509",
+            "pool": null,
+            "protection": false,
+            "restore": false,
+            "rootfs": [
+              {
+                "acl": false,
+                "quota": false,
+                "replicate": false,
+                "ro": false,
+                "shared": false,
+                "size": "8G",
+                "storage": "local-lvm",
+                "volume": "local-lvm:vm-202-disk-0"
+              }
+            ],
+            "searchdomain": "local",
+            "ssh_public_keys": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMxLcxTX+fvOilwwzkiaVF3hDVeJKLheKfirDOGve6eE bastion",
+            "start": true,
+            "startup": "",
+            "swap": 1024,
+            "tags": "adguard",
+            "target_node": "pve",
+            "template": false,
+            "timeouts": null,
+            "tty": 2,
+            "unique": false,
+            "unprivileged": true,
+            "unused": [],
+            "vmid": 202
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "password"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "ssh_public_keys"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWZhdWx0IjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        },
+        {
+          "index_key": "jenkins",
+          "schema_version": 0,
+          "attributes": {
+            "arch": "amd64",
+            "bwlimit": 0,
+            "clone": null,
+            "clone_storage": null,
+            "cmode": "tty",
+            "console": true,
+            "cores": 2,
+            "cpulimit": 0,
+            "cpuunits": 1024,
+            "current_node": "pve",
+            "description": "",
+            "features": [
+              {
+                "fuse": false,
+                "keyctl": false,
+                "mknod": false,
+                "mount": "",
+                "nesting": true
+              }
+            ],
+            "force": false,
+            "full": null,
+            "hagroup": "",
+            "hastate": "",
+            "hookscript": "",
+            "hostname": "jenkins",
+            "id": "pve/lxc/203",
+            "ignore_unpack_errors": false,
+            "lock": "",
+            "memory": 256,
+            "mountpoint": [],
+            "nameserver": "1.1.1.1",
+            "network": [
+              {
+                "bridge": "vmbr0",
+                "firewall": false,
+                "gw": "192.168.1.254",
+                "gw6": "",
+                "hwaddr": "BC:24:11:51:77:50",
+                "id": 0,
+                "ip": "192.168.1.33/24",
+                "ip6": "auto",
+                "mtu": 0,
+                "name": "eth0",
+                "rate": 0,
+                "tag": 0,
+                "trunks": "",
+                "type": "veth"
+              }
+            ],
+            "onboot": false,
+            "ostemplate": "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst",
+            "ostype": "debian",
+            "password": "clement2509",
+            "pool": null,
+            "protection": false,
+            "restore": false,
+            "rootfs": [
+              {
+                "acl": false,
+                "quota": false,
+                "replicate": false,
+                "ro": false,
+                "shared": false,
+                "size": "8G",
+                "storage": "local-lvm",
+                "volume": "local-lvm:vm-203-disk-0"
+              }
+            ],
+            "searchdomain": "local",
+            "ssh_public_keys": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMxLcxTX+fvOilwwzkiaVF3hDVeJKLheKfirDOGve6eE bastion",
+            "start": true,
+            "startup": "",
+            "swap": 2048,
+            "tags": "jenkins",
+            "target_node": "pve",
+            "template": false,
+            "timeouts": null,
+            "tty": 2,
+            "unique": false,
+            "unprivileged": true,
+            "unused": [],
+            "vmid": 203
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "password"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "ssh_public_keys"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWZhdWx0IjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        },
+        {
+          "index_key": "servarr",
+          "schema_version": 0,
+          "attributes": {
+            "arch": "amd64",
+            "bwlimit": 0,
+            "clone": null,
+            "clone_storage": null,
+            "cmode": "tty",
+            "console": true,
+            "cores": 3,
+            "cpulimit": 0,
+            "cpuunits": 1024,
+            "current_node": "pve",
+            "description": " BEGIN ANSIBLE MANAGED BLOCK - Servarr Passthrough\n END ANSIBLE MANAGED BLOCK - Servarr Passthrough\n",
+            "features": [
+              {
+                "fuse": false,
+                "keyctl": false,
+                "mknod": false,
+                "mount": "",
+                "nesting": true
+              }
+            ],
+            "force": false,
+            "full": null,
+            "hagroup": "",
+            "hastate": "",
+            "hookscript": "",
+            "hostname": "servarr",
+            "id": "pve/lxc/201",
+            "ignore_unpack_errors": false,
+            "lock": "",
+            "memory": 2861,
+            "mountpoint": [],
+            "nameserver": "1.1.1.1",
+            "network": [
+              {
+                "bridge": "vmbr0",
+                "firewall": false,
+                "gw": "192.168.1.254",
+                "gw6": "",
+                "hwaddr": "BC:24:11:00:4C:4D",
+                "id": 0,
+                "ip": "192.168.1.31/24",
+                "ip6": "auto",
+                "mtu": 0,
+                "name": "eth0",
+                "rate": 0,
+                "tag": 0,
+                "trunks": "",
+                "type": "veth"
+              }
+            ],
+            "onboot": false,
+            "ostemplate": "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst",
+            "ostype": "debian",
+            "password": "clement2509",
+            "pool": null,
+            "protection": false,
+            "restore": false,
+            "rootfs": [
+              {
+                "acl": false,
+                "quota": false,
+                "replicate": false,
+                "ro": false,
+                "shared": false,
+                "size": "32G",
+                "storage": "local-lvm",
+                "volume": "local-lvm:vm-201-disk-0"
+              }
+            ],
+            "searchdomain": "local",
+            "ssh_public_keys": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMxLcxTX+fvOilwwzkiaVF3hDVeJKLheKfirDOGve6eE bastion",
+            "start": true,
+            "startup": "",
+            "swap": 1024,
+            "tags": "servarr",
+            "target_node": "pve",
+            "template": false,
+            "timeouts": null,
+            "tty": 2,
+            "unique": false,
+            "unprivileged": true,
+            "unused": [],
+            "vmid": 201
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "password"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "ssh_public_keys"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWZhdWx0IjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        },
+        {
+          "index_key": "traefik",
+          "schema_version": 0,
+          "attributes": {
+            "arch": "amd64",
+            "bwlimit": 0,
+            "clone": null,
+            "clone_storage": null,
+            "cmode": "tty",
+            "console": true,
+            "cores": 1,
+            "cpulimit": 0,
+            "cpuunits": 1024,
+            "current_node": "pve",
+            "description": " BEGIN ANSIBLE MANAGED BLOCK - Traefik Docker Privileges\n END ANSIBLE MANAGED BLOCK - Traefik Docker Privileges\n",
+            "features": [
+              {
+                "fuse": false,
+                "keyctl": false,
+                "mknod": false,
+                "mount": "",
+                "nesting": true
+              }
+            ],
+            "force": false,
+            "full": null,
+            "hagroup": "",
+            "hastate": "",
+            "hookscript": "",
+            "hostname": "traefik",
+            "id": "pve/lxc/200",
+            "ignore_unpack_errors": false,
+            "lock": "",
+            "memory": 512,
+            "mountpoint": [],
+            "nameserver": "1.1.1.1",
+            "network": [
+              {
+                "bridge": "vmbr0",
+                "firewall": false,
+                "gw": "192.168.1.254",
+                "gw6": "",
+                "hwaddr": "BC:24:11:21:5E:2B",
+                "id": 0,
+                "ip": "192.168.1.30/24",
+                "ip6": "auto",
+                "mtu": 0,
+                "name": "eth0",
+                "rate": 0,
+                "tag": 0,
+                "trunks": "",
+                "type": "veth"
+              }
+            ],
+            "onboot": false,
+            "ostemplate": "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst",
+            "ostype": "debian",
+            "password": "clement2509",
+            "pool": null,
+            "protection": false,
+            "restore": false,
+            "rootfs": [
+              {
+                "acl": false,
+                "quota": false,
+                "replicate": false,
+                "ro": false,
+                "shared": false,
+                "size": "8G",
+                "storage": "local-lvm",
+                "volume": "local-lvm:vm-200-disk-0"
+              }
+            ],
+            "searchdomain": "local",
+            "ssh_public_keys": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMxLcxTX+fvOilwwzkiaVF3hDVeJKLheKfirDOGve6eE bastion",
+            "start": true,
+            "startup": "",
+            "swap": 1024,
+            "tags": "traefik",
+            "target_node": "pve",
+            "template": false,
+            "timeouts": null,
+            "tty": 2,
+            "unique": false,
+            "unprivileged": true,
+            "unused": [],
+            "vmid": 200
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "password"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "ssh_public_keys"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWZhdWx0IjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}
+</file>
+
+<file path="terraform/terraform.tfstate.1763729225.backup">
+{
+  "version": 4,
+  "terraform_version": "1.13.5",
+  "serial": 38,
+  "lineage": "7c2dd8b7-598d-5e13-9ad0-9e17f8a1d62e",
+  "outputs": {
+    "container_details": {
+      "value": {
+        "adguard": {
+          "ip": "192.168.1.32"
+        },
+        "monitoring": {
+          "ip": "192.168.1.34"
+        },
+        "servarr": {
+          "ip": "192.168.1.31"
+        },
+        "traefik": {
+          "ip": "192.168.1.30"
+        }
+      },
+      "type": [
+        "object",
+        {
+          "adguard": [
+            "object",
+            {
+              "ip": "string"
+            }
+          ],
+          "monitoring": [
+            "object",
+            {
+              "ip": "string"
+            }
+          ],
+          "servarr": [
+            "object",
+            {
+              "ip": "string"
+            }
+          ],
+          "traefik": [
+            "object",
+            {
+              "ip": "string"
+            }
+          ]
+        }
+      ],
+      "sensitive": true
+    }
+  },
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "local_file",
+      "name": "ansible_inventory",
+      "provider": "provider[\"registry.terraform.io/hashicorp/local\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "content": "# This file is automatically generated by Terraform.\n# Do not edit manually!\n\n[lxc_hosts]\nadguard ansible_host=192.168.1.32\nmonitoring ansible_host=192.168.1.34\nservarr ansible_host=192.168.1.31\ntraefik ansible_host=192.168.1.30\n[proxmox_host]\npve ansible_host=192.168.1.50\n[proxmox_host:vars]\nansible_user=root\nservarr_vmid=201 \n[all:vars]\nansible_user=root\nansible_password=clement2509\nansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'",
+            "content_base64": null,
+            "content_base64sha256": "oitzpgnF9dbz7Y8G70Apt+VAuszDLxmaKvnRltNCwDg=",
+            "content_base64sha512": "f7qdg00FcWxBxMrN6pNM22rtcuctk6e/UFjIuVqs4LfXZyz/SRJd6fA+R3hk/BLjvdSl3XZhV4fw1+5zT1o+GA==",
+            "content_md5": "e45b7026357c69f1f693113160caf490",
+            "content_sha1": "cf6c890ef393fa2a7dacdcfd54e73579d07e731e",
+            "content_sha256": "a22b73a609c5f5d6f3ed8f06ef4029b7e540baccc32f199a2af9d196d342c038",
+            "content_sha512": "7fba9d834d05716c41c4cacdea934cdb6aed72e72d93a7bf5058c8b95aace0b7d7672cff49125de9f03e477864fc12e3bdd4a5dd76615787f0d7ee734f5a3e18",
+            "directory_permission": "0777",
+            "file_permission": "0777",
+            "filename": "./../ansible/inventory.tf.ini",
+            "id": "cf6c890ef393fa2a7dacdcfd54e73579d07e731e",
+            "sensitive_content": null,
+            "source": null
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "content"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "sensitive_content"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "dependencies": [
+            "proxmox_lxc.ct_group"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "proxmox_lxc",
+      "name": "ct_group",
+      "provider": "provider[\"registry.terraform.io/telmate/proxmox\"]",
+      "instances": [
+        {
+          "index_key": "adguard",
+          "schema_version": 0,
+          "attributes": {
+            "arch": "amd64",
+            "bwlimit": 0,
+            "clone": null,
+            "clone_storage": null,
+            "cmode": "tty",
+            "console": true,
+            "cores": 1,
+            "cpulimit": 0,
+            "cpuunits": 1024,
+            "current_node": "pve",
+            "description": "",
+            "features": [
+              {
+                "fuse": false,
+                "keyctl": false,
+                "mknod": false,
+                "mount": "",
+                "nesting": true
+              }
+            ],
+            "force": false,
+            "full": null,
+            "hagroup": "",
+            "hastate": "",
+            "hookscript": "",
+            "hostname": "adguard",
+            "id": "pve/lxc/202",
+            "ignore_unpack_errors": false,
+            "lock": "",
+            "memory": 512,
+            "mountpoint": [],
+            "nameserver": "1.1.1.1",
+            "network": [
+              {
+                "bridge": "vmbr0",
+                "firewall": false,
+                "gw": "192.168.1.254",
+                "gw6": "",
+                "hwaddr": "BC:24:11:A6:5C:65",
+                "id": 0,
+                "ip": "192.168.1.32/24",
+                "ip6": "auto",
+                "mtu": 0,
+                "name": "eth0",
+                "rate": 0,
+                "tag": 0,
+                "trunks": "",
+                "type": "veth"
+              }
+            ],
+            "onboot": false,
+            "ostemplate": "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst",
+            "ostype": "debian",
+            "password": "clement2509",
+            "pool": null,
+            "protection": false,
+            "restore": false,
+            "rootfs": [
+              {
+                "acl": false,
+                "quota": false,
+                "replicate": false,
+                "ro": false,
+                "shared": false,
+                "size": "8G",
+                "storage": "local-lvm",
+                "volume": "local-lvm:vm-202-disk-0"
+              }
+            ],
+            "searchdomain": "local",
+            "ssh_public_keys": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMxLcxTX+fvOilwwzkiaVF3hDVeJKLheKfirDOGve6eE bastion",
+            "start": true,
+            "startup": "",
+            "swap": 1024,
+            "tags": "adguard",
+            "target_node": "pve",
+            "template": false,
+            "timeouts": null,
+            "tty": 2,
+            "unique": false,
+            "unprivileged": true,
+            "unused": [],
+            "vmid": 202
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "password"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "ssh_public_keys"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWZhdWx0IjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        },
+        {
+          "index_key": "monitoring",
+          "schema_version": 0,
+          "attributes": {
+            "arch": "amd64",
+            "bwlimit": 0,
+            "clone": null,
+            "clone_storage": null,
+            "cmode": "tty",
+            "console": true,
+            "cores": 2,
+            "cpulimit": 0,
+            "cpuunits": 1024,
+            "current_node": "pve",
+            "description": " BEGIN ANSIBLE MANAGED BLOCK - Monitoring kmsg\n END ANSIBLE MANAGED BLOCK - Monitoring kmsg\n",
+            "features": [
+              {
+                "fuse": false,
+                "keyctl": false,
+                "mknod": false,
+                "mount": "",
+                "nesting": true
+              }
+            ],
+            "force": false,
+            "full": null,
+            "hagroup": "",
+            "hastate": "",
+            "hookscript": "",
+            "hostname": "monitoring",
+            "id": "pve/lxc/204",
+            "ignore_unpack_errors": false,
+            "lock": "",
+            "memory": 2048,
+            "mountpoint": [],
+            "nameserver": "1.1.1.1",
+            "network": [
+              {
+                "bridge": "vmbr0",
+                "firewall": false,
+                "gw": "192.168.1.254",
+                "gw6": "",
+                "hwaddr": "BC:24:11:06:A2:D5",
+                "id": 0,
+                "ip": "192.168.1.34/24",
+                "ip6": "auto",
+                "mtu": 0,
+                "name": "eth0",
+                "rate": 0,
+                "tag": 0,
+                "trunks": "",
+                "type": "veth"
+              }
+            ],
+            "onboot": false,
+            "ostemplate": "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst",
+            "ostype": "debian",
+            "password": "clement2509",
+            "pool": null,
+            "protection": false,
+            "restore": false,
+            "rootfs": [
+              {
+                "acl": false,
+                "quota": false,
+                "replicate": false,
+                "ro": false,
+                "shared": false,
+                "size": "8G",
+                "storage": "local-lvm",
+                "volume": "local-lvm:vm-204-disk-0"
+              }
+            ],
+            "searchdomain": "local",
+            "ssh_public_keys": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMxLcxTX+fvOilwwzkiaVF3hDVeJKLheKfirDOGve6eE bastion",
+            "start": true,
+            "startup": "",
+            "swap": 1024,
+            "tags": "monitoring",
+            "target_node": "pve",
+            "template": false,
+            "timeouts": null,
+            "tty": 2,
+            "unique": false,
+            "unprivileged": true,
+            "unused": [],
+            "vmid": 204
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "password"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "ssh_public_keys"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWZhdWx0IjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        },
+        {
+          "index_key": "servarr",
+          "schema_version": 0,
+          "attributes": {
+            "arch": "amd64",
+            "bwlimit": 0,
+            "clone": null,
+            "clone_storage": null,
+            "cmode": "tty",
+            "console": true,
+            "cores": 3,
+            "cpulimit": 0,
+            "cpuunits": 1024,
+            "current_node": "pve",
+            "description": " BEGIN ANSIBLE MANAGED BLOCK - Servarr Passthrough\n END ANSIBLE MANAGED BLOCK - Servarr Passthrough\n",
+            "features": [
+              {
+                "fuse": false,
+                "keyctl": false,
+                "mknod": false,
+                "mount": "",
+                "nesting": true
+              }
+            ],
+            "force": false,
+            "full": null,
+            "hagroup": "",
+            "hastate": "",
+            "hookscript": "",
+            "hostname": "servarr",
+            "id": "pve/lxc/201",
+            "ignore_unpack_errors": false,
+            "lock": "",
+            "memory": 2861,
+            "mountpoint": [],
+            "nameserver": "1.1.1.1",
+            "network": [
+              {
+                "bridge": "vmbr0",
+                "firewall": false,
+                "gw": "192.168.1.254",
+                "gw6": "",
+                "hwaddr": "BC:24:11:00:4C:4D",
+                "id": 0,
+                "ip": "192.168.1.31/24",
+                "ip6": "auto",
+                "mtu": 0,
+                "name": "eth0",
+                "rate": 0,
+                "tag": 0,
+                "trunks": "",
+                "type": "veth"
+              }
+            ],
+            "onboot": false,
+            "ostemplate": "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst",
+            "ostype": "debian",
+            "password": "clement2509",
+            "pool": null,
+            "protection": false,
+            "restore": false,
+            "rootfs": [
+              {
+                "acl": false,
+                "quota": false,
+                "replicate": false,
+                "ro": false,
+                "shared": false,
+                "size": "32G",
+                "storage": "local-lvm",
+                "volume": "local-lvm:vm-201-disk-0"
+              }
+            ],
+            "searchdomain": "local",
+            "ssh_public_keys": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMxLcxTX+fvOilwwzkiaVF3hDVeJKLheKfirDOGve6eE bastion",
+            "start": true,
+            "startup": "",
+            "swap": 1024,
+            "tags": "servarr",
+            "target_node": "pve",
+            "template": false,
+            "timeouts": null,
+            "tty": 2,
+            "unique": false,
+            "unprivileged": true,
+            "unused": [],
+            "vmid": 201
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "password"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "ssh_public_keys"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWZhdWx0IjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        },
+        {
+          "index_key": "traefik",
+          "schema_version": 0,
+          "attributes": {
+            "arch": "amd64",
+            "bwlimit": 0,
+            "clone": null,
+            "clone_storage": null,
+            "cmode": "tty",
+            "console": true,
+            "cores": 1,
+            "cpulimit": 0,
+            "cpuunits": 1024,
+            "current_node": "pve",
+            "description": " BEGIN ANSIBLE MANAGED BLOCK - Traefik Docker Privileges\n END ANSIBLE MANAGED BLOCK - Traefik Docker Privileges\n",
+            "features": [
+              {
+                "fuse": false,
+                "keyctl": false,
+                "mknod": false,
+                "mount": "",
+                "nesting": true
+              }
+            ],
+            "force": false,
+            "full": null,
+            "hagroup": "",
+            "hastate": "",
+            "hookscript": "",
+            "hostname": "traefik",
+            "id": "pve/lxc/200",
+            "ignore_unpack_errors": false,
+            "lock": "",
+            "memory": 512,
+            "mountpoint": [],
+            "nameserver": "1.1.1.1",
+            "network": [
+              {
+                "bridge": "vmbr0",
+                "firewall": false,
+                "gw": "192.168.1.254",
+                "gw6": "",
+                "hwaddr": "BC:24:11:21:5E:2B",
+                "id": 0,
+                "ip": "192.168.1.30/24",
+                "ip6": "auto",
+                "mtu": 0,
+                "name": "eth0",
+                "rate": 0,
+                "tag": 0,
+                "trunks": "",
+                "type": "veth"
+              }
+            ],
+            "onboot": false,
+            "ostemplate": "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst",
+            "ostype": "debian",
+            "password": "clement2509",
+            "pool": null,
+            "protection": false,
+            "restore": false,
+            "rootfs": [
+              {
+                "acl": false,
+                "quota": false,
+                "replicate": false,
+                "ro": false,
+                "shared": false,
+                "size": "8G",
+                "storage": "local-lvm",
+                "volume": "local-lvm:vm-200-disk-0"
+              }
+            ],
+            "searchdomain": "local",
+            "ssh_public_keys": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMxLcxTX+fvOilwwzkiaVF3hDVeJKLheKfirDOGve6eE bastion",
+            "start": true,
+            "startup": "",
+            "swap": 1024,
+            "tags": "traefik",
+            "target_node": "pve",
+            "template": false,
+            "timeouts": null,
+            "tty": 2,
+            "unique": false,
+            "unprivileged": true,
+            "unused": [],
+            "vmid": 200
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "password"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "ssh_public_keys"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWZhdWx0IjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}
 </file>
 
 <file path="terraform/variables.tf">
@@ -1969,31 +3018,160 @@ pipeline {
 }
 </file>
 
-<file path="ansible/provisioning/adguard.yml">
----
-- name: Deploy AdGuard Home
-  hosts: adguard
-  gather_facts: no
-  tasks:
-    - name: Start the AdGuard stack with Docker Compose
-      community.docker.docker_compose_v2:
-        project_src: '/opt/homelab-stack/docker-compose/lxc-100-adguard'
-        state: present
+<file path="Jenkinsfile.infra">
+pipeline {
+    agent any
+    
+    // On surveille GitHub toutes les 5 min
+    triggers {
+        pollSCM('H/5 * * * *') 
+    }
+
+    stages {
+        stage('Deploy on Bastion') {
+            steps {
+                script {
+                    echo "Lancement du déploiement sur le Bastion..."
+                    // On utilise la clé SSH de l'utilisateur 'jenkins' du conteneur
+                    sh "ssh -o StrictHostKeyChecking=no clem@192.168.1.20 '/home/clem/deploy_infra.sh'"
+                }
+            }
+        }
+    }
+}
 </file>
 
-<file path="ansible/provisioning/servarr.yml">
+<file path="ansible/provisioning/jenkins.yml">
 ---
-- name: Deploy Servarr Stack  
-  hosts: servarr
-  gather_facts: no             
-  become: true               
-
-  tasks:                    
-    - name: Start the Servarr stack with Docker Compose
+- name: Deploy Jenkins
+  hosts: jenkins
+  gather_facts: no
+  tasks:
+    - name: Start the Jenkins with Docker Compose
       community.docker.docker_compose_v2:
-        project_src: '/opt/homelab-stack/docker-compose/lxc-101-servarr'
+        project_src: '/opt/homelab-stack/docker-compose/lxc-203-jenkins'
         state: present
-        remove_orphans: yes
+        
+    - name: Configure Docker Daemon for Registry Access
+      ansible.builtin.copy:
+        dest: /etc/docker/daemon.json
+        content: |
+          {
+            "insecure-registries" : ["192.168.1.33:5000"]
+          }
+        mode: '0644'
+      notify: Restart Docker
+
+  handlers:
+      - name: Restart Docker
+        service:
+          name: docker
+          state: restarted
+</file>
+
+<file path="ansible/provisioning/monitoring.yml">
+---
+- name: Deploy Monitoring Stack
+  hosts: monitoring
+  become: true
+  gather_facts: no
+  
+  tasks:
+    - name: Ensure config directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+        recurse: yes
+      loop:
+        - /media/docker-data/prometheus/config
+        - /media/docker-data/grafana
+    - name: Ensure Grafana data directory permissions
+      ansible.builtin.file:
+        path: /media/docker-data/grafana
+        state: directory
+        owner: '472'   # UID spécifique de Grafana
+        group: '472'
+        mode: '0755'
+        recurse: yes
+
+    # Tâche pour Prometheus
+    - name: Ensure Prometheus data directory permissions
+      ansible.builtin.file:
+        path: /media/docker-data/prometheus
+        state: directory
+        owner: '65534' # UID spécifique de Prometheus (nobody)
+        group: '65534'
+        mode: '0755'
+        recurse: yes
+    - name: Copy Prometheus config
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../docker-compose/lxc-204-monitoring/conf/prometheus.yml"
+        dest: /media/docker-data/prometheus/config/prometheus.yml
+        mode: '0644'
+      notify: Restart Monitoring
+
+    - name: Start Monitoring Stack
+      community.docker.docker_compose_v2:
+        project_src: '/opt/homelab-stack/docker-compose/lxc-204-monitoring'
+        state: present
+
+  handlers:
+    - name: Restart Monitoring
+      community.docker.docker_compose_v2:
+        project_src: '/opt/homelab-stack/docker-compose/lxc-204-monitoring'
+        state: restarted
+</file>
+
+<file path="ansible/provisioning/setup_bastion.yml">
+---
+- name: Configure Bastion Admin Node
+  hosts: bastion
+  become: true
+  tasks:
+    - name: Install Admin Tools
+      apt:
+        name:
+          - git
+          - curl
+          - wgetHashicorp
+          - unzip
+          - vim
+          - nano
+          - python3-pip
+          - python3-venv
+          - sshpass
+        state: present
+        update_cache: yes
+
+    - name: Add Hashicorp GPG key
+      apt_key:
+        url: https://apt.releases.hashicorp.com/gpg
+        state: present
+
+    - name: Add Hashicorp Repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main"
+        state: present
+
+    - name: Install Terraform
+      apt:
+        name: terraform
+        state: present
+
+    - name: Install Ansible via Pip (in venv usually, but global for bastion is ok)
+      pip:
+        name: 
+          - ansible
+          - proxmoxer
+          - requests
+        break_system_packages: true # Force install on recent Debian/Ubuntu
+
+    - name: Install Tailscale
+      shell: |
+        curl -fsSL https://tailscale.com/install.sh | sh
+      args:
+        creates: /usr/bin/tailscale
 </file>
 
 <file path="ansible/roles/common/handlers/main.yml">
@@ -2007,75 +3185,6 @@ pipeline {
   ansible.builtin.service:
     name: docker
     state: restarted
-</file>
-
-<file path="ansible/roles/users/tasks/main.yml">
----
-# tasks file for roles/users
-- name: Ensure the sudo group is present
-  ansible.builtin.group:
-    name: sudo
-    state: present
-
-- name: Create the 'clem' user
-  ansible.builtin.user:
-    name: clem
-    comment: "Clem Administrator Account"
-    shell: /bin/bash
-    groups: sudo  # Add the user to the sudo group
-    append: yes   # Ensure we ADD the group, not replace others
-    create_home: yes
-    state: present
-    # This securely sets the password by hashing the variable from our vault
-    password: "{{ user_clem_password | password_hash('sha512') }}"
-
-- name: Allow 'clem' to run sudo without a password
-  ansible.builtin.lineinfile:
-    path: /etc/sudoers
-    state: present
-    regexp: '^%sudo'
-    line: '%sudo ALL=(ALL) NOPASSWD: ALL'
-    # This is a CRITICAL safety check to prevent locking yourself out.
-    validate: 'visudo -cf %s'
-
-- name: Ensure fish shell is installed
-  ansible.builtin.package:
-    name: fish
-    state: present
-
-- name: Find the path to the fish executable
-  ansible.builtin.command: which fish
-  register: fish_path_result
-  changed_when: false # This command doesn't change anything, just gathers info
-  check_mode: false  # Always run this command even in check mode
-
-- name: Set fish as the default shell for the 'root' user
-  ansible.builtin.user:
-    name: root
-    shell: "{{ fish_path_result.stdout }}"
-
-# -----------------------------------------------------------------
-# TASK SET 2: Set default starting directory for root's fish shell
-# -----------------------------------------------------------------
-
-- name: Ensure the default start directory exists
-  ansible.builtin.file:
-    path: "{{ default_start_dir }}"
-    state: directory
-    mode: '0755'
-
-- name: Configure default directory for root's fish shell
-  ansible.builtin.blockinfile:
-    path: /root/.config/fish/config.fish
-    create: yes # Creates the file and directories if they don't exist
-    owner: root
-    group: root
-    mode: '0644'
-    block: |
-      # Set default directory on interactive shell start (managed by Ansible)
-      if status is-interactive
-        cd {{ default_start_dir }}
-      end
 </file>
 
 <file path="ansible/ansible.cfg">
@@ -2093,42 +3202,526 @@ result_format = yaml
 become = True
 </file>
 
-<file path="docker-compose/lxc-102-reverse-proxy/docker-compose.yml">
+<file path="docker-compose/lxc-201-servarr/docker-compose.yml">
+# All config volumes now point to /media/docker-data/
+
+networks:
+  servarrnetwork:
+    name: servarrnetwork
+    ipam:
+      config:
+        - subnet: 172.39.0.0/24
+
 services:
-  app:
-    image: 'jc21/nginx-proxy-manager:latest'
-    container_name: nginx-proxy-manager
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
     restart: unless-stopped
-    ports:
-      - '80:80'
-      - '443:443'
-      - '81:81'
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - WEBUI_PORT=8080
     volumes:
-      - ./data:/data
-      - /media/docker-data/nginx:/config
-      - ./letsencrypt:/etc/letsencrypt
-</file>
-
-<file path="docker-compose/lxc-203-jenkins/docker-compose.yml">
-version: '3.8'
-
-services:
-  jenkins:
-    build: .
-    container_name: jenkins
-    restart: unless-stopped
+      - /media/docker-data/qbittorrent:/config
+      - /media/library:/data
     ports:
       - "8080:8080"
-      - "50000:50000"
-    volumes:
-      - /media/docker-data/jenkins:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - TZ=Europe/Paris  
+      - "6881:6881"
+      - "6881:6881/udp"
+    networks:
+      servarrnetwork:
+        ipv4_address: 172.39.0.5
 
-volumes:
-  jenkins_home:
-    name: jenkins_home
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - /media/docker-data/prowlarr:/config
+    ports:
+      - "9696:9696"
+    networks:
+      servarrnetwork:
+        ipv4_address: 172.39.0.6
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - /media/docker-data/sonarr:/config
+      - /media:/media
+    ports:
+      - "8989:8989"
+    networks:
+      servarrnetwork:
+        ipv4_address: 172.39.0.3
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - /media/docker-data/radarr:/config
+      - /media:/media
+    ports:
+      - "7878:7878"
+    networks:
+      servarrnetwork:
+        ipv4_address: 172.39.0.4
+
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+    volumes:
+      - /media/docker-data/jellyfin:/config
+      - /media:/media
+    devices:
+      - /dev/dri:/dev/dri #Use for Intel QuickSync
+    ports:
+      - "8096:8096"
+      - "7359:7359/udp"
+      - "1900:1900/udp"
+    restart: unless-stopped
+
+  jellyseerr:
+    container_name: jellyseerr
+    image: fallenbagel/jellyseerr:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+    volumes:
+      - /media/docker-data/jellyseerr:/app/config
+    ports:
+      - "5055:5055"
+    restart: unless-stopped
+
+  gestionnaire-app:
+    image: 192.168.1.33:5000/budget-app:latest
+    restart: unless-stopped
+    ports:
+      - "2000:2000"
+    volumes:
+      - /media/docker-data/budget/data:/app/data
+</file>
+
+<file path="docker-compose/lxc-202-adguard/docker-compose.yml">
+services:
+  adguardhome:
+    image: adguard/adguardhome:latest
+    container_name: adguardhome
+    environment:
+      - ADGUARD_PASSWORD_HASH=${ADGUARD_PASSWORD_HASH}
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "3000:3000/tcp"
+      - "80:80/tcp"
+    volumes:
+      - /media/docker-data/adguard/work:/opt/adguardhome/work
+      - /media/docker-data/adguard/conf:/opt/adguardhome/conf
+    restart: unless-stopped
+</file>
+
+<file path="docker-compose/lxc-204-monitoring/conf/prometheus.yml">
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Surveillance du système (CPU/RAM global du LXC)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # Cadvisor (Commenté pour l'instant car instable en LXC Unprivileged)
+  # - job_name: 'docker-containers'
+  #   static_configs:
+  #     - targets: ['cadvisor:8080']
+</file>
+
+<file path="terraform/.gitignore">
+terraform.tfvars
+.terraform.lock.hcl
+terraform.tfstate
+inventory.tpl
+</file>
+
+<file path="terraform-bastion/.terraform/providers/registry.terraform.io/telmate/proxmox/3.0.2-rc04/linux_amd64/LICENSE">
+The MIT License (MIT)
+
+Copyright (c) 2017 <copyright holders>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+</file>
+
+<file path="terraform-bastion/.terraform/providers/registry.terraform.io/telmate/proxmox/3.0.2-rc04/linux_amd64/README.md">
+[![Build Status](https://travis-ci.com/Telmate/terraform-provider-proxmox.svg?branch=master)](https://travis-ci.com/Telmate/terraform-provider-proxmox)
+
+# Terraform provider plugin for Proxmox
+
+This repository provides a Terraform provider for
+the [Proxmox virtualization platform](https://pve.proxmox.com/pve-docs/) and exposes Terraform resources to provision
+QEMU VMs and LXC Containers.
+
+## Getting Started
+
+In order to get started, use [the documentation included in this repository](docs/index.md). The documentation contains
+a list of the options for the provider. Moreover, there are some guides available how to combine options and start
+specific VMs.
+
+## Quick Start
+
+Follow this [install guide](docs/guides/installation.md) to install the plugin.
+
+## Known Limitations
+
+* `proxmox_vm_qemu`.`disk`.`size` attribute does not match what is displayed in the Proxmox UI.
+* Updates to `proxmox_vm_qemu` resources almost always result as a failed task within the Proxmox UI. This appears to be
+  harmless and the desired configuration changes do get applied.
+* When using the `proxmox_lxc` resource, the provider will crash unless `rootfs` is defined.
+* When using the Network Boot mode (PXE), a valid NIC must be defined for the VM, and the boot order must specify network first.
+
+## Contributing
+
+When contributing, please also add documentation to help other users.
+
+### Debugging the provider
+
+Debugging is available for this provider through the Terraform Plugin SDK versions 2.0.0. Therefore, the plugin can be
+started with the debugging flag `--debug`.
+
+For example (using [delve](https://github.com/go-delve/delve) as Debugger):
+
+```bash
+dlv exec --headless ./terraform-provider-my-provider -- --debug
+```
+
+For more information about debugging a provider please
+see: [Debugger-Based Debugging](https://www.terraform.io/docs/extend/debugging.html#debugger-based-debugging)
+
+## Useful links
+
+* [Proxmox](https://www.proxmox.com/en/)
+* [Proxmox documentation](https://pve.proxmox.com/pve-docs/)
+* [Terraform](https://www.terraform.io/)
+* [Terraform documentation](https://www.terraform.io/docs/index.html)
+* [Recommended ISO builder](https://github.com/Telmate/terraform-ubuntu-proxmox-iso)
+</file>
+
+<file path="terraform-bastion/.terraform.lock.hcl">
+# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+
+provider "registry.terraform.io/telmate/proxmox" {
+  version     = "3.0.2-rc04"
+  constraints = "3.0.2-rc04"
+  hashes = [
+    "h1:8tyqYSoNfrqIh0ICT7abFOQVcyGGXry2qFCJVMoc4TE=",
+    "zh:00586a3e02061734f5ff4c309696ec1bbd6e00a7ed1281c44626f02929417f6e",
+    "zh:05af12aababd0a67a95309a803123f3c238b16ecdb73dc59c8d9c3d4a0b691c5",
+    "zh:4b6457bd0138f5c66c8b7043bdbffe3b8abcce2383293d77f653dbd77d14428f",
+    "zh:7b1b6e76d6b03c7829b8dadeb30de236782be314f5146d9f29ee12bd01961d7a",
+    "zh:87c21e0a8244b73c62ad3221773ec1c72fb918e0025b0664183a8ad8bebeb5bc",
+    "zh:954997c550285dfc167977683b97b045dd62923c251fad32c4ca81b564c2005f",
+    "zh:98781ef0199877580256e9f9a7f0666107f76af23f54f67d6392a66a6f5001b5",
+    "zh:9fc4dbd1752e2b9125223be2dd25597c0e6d534aa784c4829af3c3e3e58eb973",
+    "zh:a3f672019aee2d45c202668b95c48113e3c50001b740bd48956738ad1418c6b7",
+    "zh:a539852a4034132442e6dc6f644444994d83b0dc7a4d30bbe6464de420cfdf2d",
+    "zh:aade0b50a559a1da683c49ec8527e5e66b12ed42d4b1f10e69b25cbbf6c67805",
+    "zh:bdb7c2b78cfe039247948fa75fad49f871f8a8bb9b969aec4c45a24edc80ab0f",
+    "zh:c16209a6748f87a379a5a3132ca4f471a4807bd478664499593e09433ba39b7b",
+    "zh:cb015fb4a0a50d151c35c6a3505cdf7a337edd0b65eba82a43c8142c523adfb8",
+  ]
+}
+</file>
+
+<file path="terraform-bastion/main.tf">
+terraform {
+  required_providers {
+    proxmox = {
+      source  = "telmate/proxmox"
+      version = "3.0.2-rc04"
+    }
+  }
+}
+
+provider "proxmox" {
+  pm_api_url          = var.proxmox_api_url
+  pm_api_token_id     = var.proxmox_api_token_id
+  pm_api_token_secret = var.proxmox_api_token_secret
+  pm_tls_insecure     = true
+}
+
+resource "proxmox_lxc" "bastion" {
+  target_node  = var.proxmox_node
+  hostname     = "bastion-admin"
+  vmid         = 100              # ID 99 pour le distinguer des autres (100+)
+  ostemplate   = var.lxc_template
+  unprivileged = true
+  
+  # Un peu plus de ressources pour faire tourner Ansible/Terraform
+  cores        = 2
+  memory       = 1024
+  swap         = 512
+  
+  rootfs {
+    storage = "local-lvm"
+    size    = "8G"
+  }
+
+  # Réseau
+  network {
+    name   = "eth0"
+    bridge = "vmbr0"
+    gw     = "192.168.1.254"    # Ta gateway
+    ip     = "192.168.1.20/24"  # IP Fixe dédiée
+    ip6    = "auto"
+  }
+
+  # Accès
+  password        = var.root_password
+  ssh_public_keys = var.ssh_public_key
+  
+  features {
+    nesting = true
+  }
+  
+  # Empêche Terraform de le détruire par erreur à l'avenir !
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+output "bastion_ip" {
+  value = "192.168.1.20"
+}
+</file>
+
+<file path="terraform-bastion/terraform.tfstate">
+{
+  "version": 4,
+  "terraform_version": "1.13.5",
+  "serial": 3,
+  "lineage": "1a421962-dcc4-39ed-7a49-3e3266f4ef16",
+  "outputs": {
+    "bastion_ip": {
+      "value": "192.168.1.20",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "proxmox_lxc",
+      "name": "bastion",
+      "provider": "provider[\"registry.terraform.io/telmate/proxmox\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arch": "amd64",
+            "bwlimit": 0,
+            "clone": null,
+            "clone_storage": null,
+            "cmode": "tty",
+            "console": true,
+            "cores": 2,
+            "cpulimit": 0,
+            "cpuunits": 1024,
+            "current_node": "pve",
+            "description": "",
+            "features": [
+              {
+                "fuse": false,
+                "keyctl": false,
+                "mknod": false,
+                "mount": "",
+                "nesting": true
+              }
+            ],
+            "force": false,
+            "full": null,
+            "hagroup": "",
+            "hastate": "",
+            "hookscript": "",
+            "hostname": "bastion-admin",
+            "id": "pve/lxc/100",
+            "ignore_unpack_errors": false,
+            "lock": "",
+            "memory": 1024,
+            "mountpoint": [],
+            "nameserver": "",
+            "network": [
+              {
+                "bridge": "vmbr0",
+                "firewall": false,
+                "gw": "192.168.1.254",
+                "gw6": "",
+                "hwaddr": "BC:24:11:7F:BE:53",
+                "id": 0,
+                "ip": "192.168.1.20/24",
+                "ip6": "auto",
+                "mtu": 0,
+                "name": "eth0",
+                "rate": 0,
+                "tag": 0,
+                "trunks": "",
+                "type": "veth"
+              }
+            ],
+            "onboot": false,
+            "ostemplate": "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst",
+            "ostype": "debian",
+            "password": "clement2509",
+            "pool": null,
+            "protection": false,
+            "restore": false,
+            "rootfs": [
+              {
+                "acl": false,
+                "quota": false,
+                "replicate": false,
+                "ro": false,
+                "shared": false,
+                "size": "8G",
+                "storage": "local-lvm",
+                "volume": "local-lvm:vm-100-disk-0"
+              }
+            ],
+            "searchdomain": "",
+            "ssh_public_keys": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMlqpwvoQkYtfMypZCMGD8lisEZQxDq7fx01Jhc0urFV clement@hp-dev",
+            "start": false,
+            "startup": "",
+            "swap": 512,
+            "tags": "",
+            "target_node": "pve",
+            "template": false,
+            "timeouts": null,
+            "tty": 2,
+            "unique": false,
+            "unprivileged": true,
+            "unused": [],
+            "vmid": 100
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "password"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "ssh_public_keys"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWZhdWx0IjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}
+</file>
+
+<file path="terraform-bastion/terraform.tfstate.backup">
+{
+  "version": 4,
+  "terraform_version": "1.13.5",
+  "serial": 1,
+  "lineage": "1a421962-dcc4-39ed-7a49-3e3266f4ef16",
+  "outputs": {
+    "bastion_ip": {
+      "value": "192.168.1.20",
+      "type": "string"
+    }
+  },
+  "resources": [],
+  "check_results": null
+}
+</file>
+
+<file path="terraform-bastion/variables.tf">
+variable "proxmox_api_url" {
+  type        = string
+  description = "The URL for the Proxmox API (e.g., https://192.168.1.100:8006/api2/json)"
+}
+
+variable "proxmox_api_token_id" {
+  type        = string
+  description = "The Proxmox API token ID."
+  sensitive   = true
+}
+
+variable "proxmox_api_token_secret" {
+  type        = string
+  description = "The Proxmox API token secret."
+  sensitive   = true
+}
+
+variable "proxmox_node" {
+  type        = string
+  description = "The Proxmox node to create the LXC on."
+  default     = "pve"
+}
+
+variable "lxc_template" {
+  type        = string
+  description = "The LXC template to use (e.g., local:vztmpl/debian-11-standard_11.3-1_amd64.tar.gz)."
+}
+
+variable "root_password" {
+  type        = string
+  description = "The root password for the LXC container console."
+  sensitive   = true
+}
+
+variable "ssh_public_key" {
+  type        = string
+  description = "The SSH public key to install on the containers for Ansible access."
+  sensitive   = true
+}
 </file>
 
 <file path="README.md">
@@ -2284,165 +3877,213 @@ $ANSIBLE_VAULT;1.1;AES256
     force: yes
 </file>
 
-<file path="ansible/inventory.tf.ini">
-# This file is automatically generated by Terraform.
-# Do not edit manually!
+<file path="ansible/roles/users/tasks/main.yml">
+---
+# tasks file for roles/users
+- name: Ensure the sudo group is present
+  ansible.builtin.group:
+    name: sudo
+    state: present
 
-[lxc_hosts]
-adguard ansible_host=192.168.1.30
-jenkins ansible_host=192.168.1.33
-nginx ansible_host=192.168.1.32
-servarr ansible_host=192.168.1.31
-[proxmox_host]
-pve ansible_host=192.168.1.50
-[proxmox_host:vars]
-ansible_user=root
-servarr_vmid=201 
-[all:vars]
-ansible_user=root
-ansible_password=clement2509
-ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+- name: Create the 'clem' user
+  ansible.builtin.user:
+    name: clem
+    comment: "Clem Administrator Account"
+    shell: /bin/bash
+    groups: sudo,docker  # Add the user to the sudo group
+    append: yes   # Ensure we ADD the group, not replace others
+    create_home: yes
+    state: present
+    # This securely sets the password by hashing the variable from our vault
+    password: "{{ user_clem_password | password_hash('sha512') }}"
+
+- name: Allow 'clem' to run sudo without a password
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    state: present
+    regexp: '^%sudo'
+    line: '%sudo ALL=(ALL) NOPASSWD: ALL'
+    # This is a CRITICAL safety check to prevent locking yourself out.
+    validate: 'visudo -cf %s'
+
+- name: Ensure fish shell is installed
+  ansible.builtin.package:
+    name: fish
+    state: present
+
+- name: Find the path to the fish executable
+  ansible.builtin.command: which fish
+  register: fish_path_result
+  changed_when: false # This command doesn't change anything, just gathers info
+  check_mode: false  # Always run this command even in check mode
+
+- name: Set fish as the default shell for the 'root' user
+  ansible.builtin.user:
+    name: root
+    shell: "{{ fish_path_result.stdout }}"
+
+# -----------------------------------------------------------------
+# TASK SET 2: Set default starting directory for root's fish shell
+# -----------------------------------------------------------------
+
+- name: Ensure the default start directory exists
+  ansible.builtin.file:
+    path: "{{ default_start_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Configure default directory for root's fish shell
+  ansible.builtin.blockinfile:
+    path: /root/.config/fish/config.fish
+    create: yes # Creates the file and directories if they don't exist
+    owner: root
+    group: root
+    mode: '0644'
+    block: |
+      # Set default directory on interactive shell start (managed by Ansible)
+      if status is-interactive
+        cd {{ default_start_dir }}
+      end
 </file>
 
-<file path="terraform/inventory.tpl">
-# This file is automatically generated by Terraform.
-# Do not edit manually!
-
-[lxc_hosts]
-%{ for name, container in containers ~}
-${name} ansible_host=${container.ip}
-%{ endfor ~}
-[proxmox_host]
-pve ansible_host=192.168.1.50
-[proxmox_host:vars]
-ansible_user=root
-servarr_vmid=201 
-[all:vars]
-ansible_user=root
-ansible_password=${root_password}
-ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+<file path="ansible/.gitignore">
+.vault_pass
+.venv
 </file>
 
-<file path="docker-compose/lxc-101-servarr/docker-compose.yml">
-# All config volumes now point to /media/docker-data/
-
-networks:
-  servarrnetwork:
-    name: servarrnetwork
-    ipam:
-      config:
-        - subnet: 172.39.0.0/24
+<file path="docker-compose/lxc-203-jenkins/docker-compose.yml">
+version: '3.8'
 
 services:
-  qbittorrent:
-    image: lscr.io/linuxserver/qbittorrent:latest
-    container_name: qbittorrent
+  jenkins:
+    build: .
+    container_name: jenkins
     restart: unless-stopped
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-      - WEBUI_PORT=8080
-    volumes:
-      - /media/docker-data/qbittorrent:/config
-      - /media/library:/data
     ports:
       - "8080:8080"
-      - "6881:6881"
-      - "6881:6881/udp"
-    networks:
-      servarrnetwork:
-        ipv4_address: 172.39.0.5
-
-  prowlarr:
-    image: lscr.io/linuxserver/prowlarr:latest
-    container_name: prowlarr
-    restart: unless-stopped
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
+      - "50000:50000"
     volumes:
-      - /media/docker-data/prowlarr:/config
-    ports:
-      - "9696:9696"
-    networks:
-      servarrnetwork:
-        ipv4_address: 172.39.0.6
-
-  sonarr:
-    image: lscr.io/linuxserver/sonarr:latest
-    container_name: sonarr
-    restart: unless-stopped
+      - /media/docker-data/jenkins:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-    volumes:
-      - /media/docker-data/sonarr:/config
-      - /media:/media
-    ports:
-      - "8989:8989"
-    networks:
-      servarrnetwork:
-        ipv4_address: 172.39.0.3
-
-  radarr:
-    image: lscr.io/linuxserver/radarr:latest
-    container_name: radarr
-    restart: unless-stopped
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
-      - TZ=${TZ}
-    volumes:
-      - /media/docker-data/radarr:/config
-      - /media:/media
-    ports:
-      - "7878:7878"
-    networks:
-      servarrnetwork:
-        ipv4_address: 172.39.0.4
-
-  jellyfin:
-    image: lscr.io/linuxserver/jellyfin:latest
-    container_name: jellyfin
-    environment:
-      - PUID=1000
-      - PGID=1000
       - TZ=Europe/Paris
-    volumes:
-      - /media/docker-data/jellyfin:/config
-      - /media:/media
-    devices:
-      - /dev/dri:/dev/dri #Use for Intel QuickSync
-    ports:
-      - "8096:8096"
-      - "7359:7359/udp"
-      - "1900:1900/udp"
-    restart: unless-stopped
 
-  jellyseerr:
-    container_name: jellyseerr
-    image: fallenbagel/jellyseerr:latest
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Paris
-    volumes:
-      - /media/docker-data/jellyseerr:/app/config
-    ports:
-      - "5055:5055"
+  # N'OUBLIE PAS D'AJOUTER ÇA :
+  registry:
+    image: registry:2
+    container_name: docker-registry
     restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - /media/docker-data/registry:/var/lib/registry
+</file>
 
-  gestionnaire-app:
-    build: ./budget
-    image: mon-gestionnaire-app
+<file path="terraform-bastion/terraform.tfvars">
+proxmox_api_url         = "https://192.168.1.50:8006/api2/json"
+proxmox_api_token_id    = "ansible-api@pve!terraform"
+proxmox_api_token_secret = "05699295-8be8-4d92-873a-35a731fa95a9"
+
+
+lxc_template            = "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst" # Change to your desired template
+root_password           = "clement2509"
+ssh_public_key          = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMlqpwvoQkYtfMypZCMGD8lisEZQxDq7fx01Jhc0urFV clement@hp-dev"echo "--- 3. Ansible Apply ---"
+cd ../ansible
+
+# Activer l'environnement virtuel avant de lancer la commande
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+else
+    echo "ERREUR: L'environnement virtuel .venv n'existe pas !"
+    exit 1
+fi
+
+# Lancer Ansible (depuis le venv)
+ansible-playbook site.yml --vault-password-file /home/clem/homelab/ansible/.vault_pass
+</file>
+
+<file path="ansible/provisioning/servarr.yml">
+---
+- name: Deploy Servarr Stack  
+  hosts: servarr
+  gather_facts: no             
+  become: true               
+
+  tasks:
+    - name: Configure Docker to accept Insecure Registry
+      ansible.builtin.copy:
+        dest: /etc/docker/daemon.json
+        content: |
+          {
+            "insecure-registries" : ["192.168.1.33:5000"]
+          }
+        mode: '0644'
+      notify: Restart Docker                    
+    - name: Start the Servarr stack with Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: '/opt/homelab-stack/docker-compose/lxc-201-servarr'
+        state: present
+        remove_orphans: yes
+
+  handlers:
+  - name: Restart Docker
+    ansible.builtin.service:
+      name: docker
+      state: restarted
+</file>
+
+<file path="docker-compose/lxc-200-traefik/docker-compose.yml">
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     ports:
-      - "2000:2000"
+      - "80:80"     # HTTP
+      - "443:443"   # HTTPS
+      - "8080:8080" # Dashboard Traefik (Web Admin)
     volumes:
-      - /media/docker-data/budget/data:/app/data
+        - /etc/localtime:/etc/localtime:ro
+        - /var/run/docker.sock:/var/run/docker.sock:ro
+        # Configuration statique
+        - /media/docker-data/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+        # Configuration dynamique (les services)
+        - /media/docker-data/traefik/dynamic:/etc/traefik/dynamic
+        # Le fichier qui stockera tes certificats SSL (CRITIQUE)
+        - /media/docker-data/traefik/acme.json:/acme.json
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    name: proxy_network
+</file>
+
+<file path="ansible/provisioning/adguard.yml">
+---
+- name: Deploy AdGuard Home
+  hosts: adguard
+  gather_facts: no
+  tasks:
+    - name: Copy .env file with secrets to AdGuard LXC
+      ansible.builtin.copy:
+        # 'src' est le chemin sur le BASTION (la machine qui lance Ansible)
+        # 'playbook_dir' est le dossier 'ansible'. On remonte d'un cran (..) pour aller dans 'docker-compose'
+        src: "{{ playbook_dir }}/../../docker-compose/lxc-202-adguard/.env"
+        
+        # 'dest' est le chemin sur le LXC ADGUARD (la cible)
+        dest: "/opt/homelab-stack/docker-compose/lxc-202-adguard/.env"
+        
+        # Permissions strictes (seul root peut le lire)
+        mode: '0600'
+    # ----------------------
+
+    - name: Start the AdGuard stack with Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: '/opt/homelab-stack/docker-compose/lxc-202-adguard'
+        state: present
 </file>
 
 <file path="ansible/roles/common/tasks/main.yml">
@@ -2471,192 +4112,98 @@ services:
   ansible.builtin.include_tasks: docker.yml
   vars:
     problematic_version_start: "1.7.28-2"
-
-- name: Add 'dk' alias for user 'root'
-  become: true # Become root to be able to write to clem's home directory
-  ansible.builtin.lineinfile:
-    path: /home/root/.bashrc
-    line: "alias dk='cd /opt/homelab-stack/docker-compose'"
-    create: yes
 </file>
 
-<file path="docker-compose/lxc-100-adguard/docker-compose.yml">
+<file path="ansible/inventory.tf.ini">
+# This file is automatically generated by Terraform.
+# Do not edit manually!
+
+[lxc_hosts]
+adguard ansible_host=192.168.1.32
+monitoring ansible_host=192.168.1.34
+servarr ansible_host=192.168.1.31
+traefik ansible_host=192.168.1.30
+[proxmox_host]
+pve ansible_host=192.168.1.50
+[proxmox_host:vars]
+ansible_user=root
+servarr_vmid=201 
+[all:vars]
+ansible_user=root
+ansible_password=clement2509
+ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+</file>
+
+<file path="docker-compose/lxc-204-monitoring/docker-compose.yml">
 services:
-  adguardhome:
-    image: adguard/adguardhome:latest
-    container_name: adguardhome
-    environment:
-      - ADGUARD_PASSWORD_HASH=${ADGUARD_PASSWORD_HASH}
-    ports:
-      - "53:53/tcp"
-      - "53:53/udp"
-      - "3000:3000/tcp"
-    volumes:
-      - /media/docker-data/adguard/work:/opt/adguardhome/work
-      - /media/docker-data/adguard/conf:/opt/adguardhome/conf
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
     restart: unless-stopped
-</file>
+    ports:
+      - "3000:3000"
+    volumes:
+      - /media/docker-data/grafana:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin # Change-le au premier login !
 
-<file path="terraform/main.tf">
-terraform {
-  required_providers {
-    proxmox = {
-      source  = "telmate/proxmox"
-      version = "3.0.2-rc04"
-    }
-  }
-}
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - /media/docker-data/prometheus/config:/etc/prometheus
+      - /media/docker-data/prometheus/data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
 
-provider "proxmox" {
-  pm_api_url          = var.proxmox_api_url
-  pm_api_token_id     = var.proxmox_api_token_id
-  pm_api_token_secret = var.proxmox_api_token_secret
-  pm_tls_insecure     = true
-  pm_debug            = true
-}
-# resource "proxmox_virtual_environment_network_linux_bridge" "subnet_bridge" {
-#   node_name = var.proxmox_node
-#   name      = "vmbr1"
-#   comment   = "Sous-réseau interne pour les conteneurs Terraform (10.20.30.0/24)"
-  
-#   address   = "10.20.30.1/24" 
-  
-# }
-locals {
-  containers = {
-    adguard = {
-      vmid = 200
-      ip   = "192.168.1.30/24" # Nouvelle IP
-      cores = 1
-      memory = 512
-      swap = 1024
-      rootfs_size = "8G" 
-    }
-    servarr = {
-      vmid = 201
-      ip   = "192.168.1.31/24" # Nouvelle IP
-      cores = 3             
-      memory = 2861
-      swap = 1024
-      rootfs_size = "32G"         
-    }
-    nginx = {
-      vmid = 202
-      ip   = "192.168.1.32/24" # Nouvelle IP
-      cores = 1
-      memory = 512
-      swap = 1024
-      rootfs_size = "8G" 
-    }
-      jenkins = {
-      vmid   = 203 
-      ip     = "192.168.1.33/24"
-      cores  = 2     
-      memory = 2048  
-      swap   = 2048
-      rootfs_size = "8G" 
-    }
-  }
-}
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    # Montage des dossiers système pour que Node Exporter puisse lire l'hôte LXC
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
 
-
-resource "proxmox_lxc" "ct_group" {
-  # depends_on = [proxmox_virtual_environment_network_linux_bridge.subnet_bridge]
-  for_each = local.containers
-
-  target_node  = var.proxmox_node
-  ostemplate   = var.lxc_template
-  # password     = var.root_password
-  unprivileged = true
-  start        = true
-  
-  rootfs {
-    storage = "local-lvm"
-    size    = each.value.rootfs_size
-  }
-  password = var.root_password
-  ssh_public_keys = var.ssh_public_key
-  nameserver   = "1.1.1.1" # Or your preferred DNS
-  searchdomain = "local"
-  network {
-    name   = "eth0"
-    bridge = "vmbr0"             # On utilise le nouveau pont
-    gw     = "192.168.1.254"        # La passerelle est l'IP du pont vmbr1
-    ip     = each.value.ip
-    ip6    = "auto"
-  }
-  features {
-    nesting = true
-  }
-  # --- Values that are unique for each container ---
-  # 'each.key' is the name (e.g., "adguard", "servarr")
-  # 'each.value' is the map of attributes for that name
-  
-  vmid     = each.value.vmid
-  hostname = each.key
-  tags     = each.key
-  cores    = each.value.cores
-  memory   = each.value.memory
-  swap     = each.value.swap
-}
-
-# 3. The output is now much cleaner and automatically updates
-#    if you add/remove containers from the locals map.
-output "container_details" {
-  description = "A map of container details including their IP addresses."
-  value = {
-    for name, container in proxmox_lxc.ct_group : name => {
-      ip = trimsuffix(container.network[0].ip, "/24") # Removes the /24 part for Ansible
-    }
-  }
-  sensitive = true # Mark as sensitive if it contains IPs you want to hide in logs
-}
-
-# This resource creates the Ansible inventory file dynamically.
-resource "local_file" "ansible_inventory" {
-  # The content is generated from the template file and our Terraform data.
-  content = templatefile("${path.module}/inventory.tpl", {
-    # The 'containers' variable in the template will be populated by this map.
-    containers = {
-      for name, container in proxmox_lxc.ct_group : name => {
-        ip = trimsuffix(container.network[0].ip, "/24")
-      }
-    },
-    # Pass the root password to the template for the ansible_password var.
-    root_password = var.root_password
-  })
-  
-  filename = "${path.module}/../ansible/inventory.tf.ini"
-}
-</file>
-
-<file path="terraform/terraform.tfstate.backup">
-{
-  "version": 4,
-  "terraform_version": "1.13.5",
-  "serial": 137,
-  "lineage": "d2373174-bdc4-5cfa-d41d-3cb924e6b4d2",
-  "outputs": {},
-  "resources": [],
-  "check_results": null
-}
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /media/docker-data/portainer:/data
 </file>
 
 <file path="ansible/group_vars/all.yml">
 $ANSIBLE_VAULT;1.1;AES256
-38653935333834303163333433313763653634633334376363653830333639663561633738656564
-6662616361656265663563346537393530353334373932360a646530313430663631323463353830
-32353563393965623834666130333030303761373366396334366464313533376338396136306236
-3838623262346362300a393265343837373339303665626636316235313037303234343561353734
-64346164396333643932383236353666616537643264663232653134303165306564663832613266
-32303132363366316436653739393366343530626362653535313861343834323430333561343435
-66363062306434646535616634343133363661626630383563333533396636396238623634346663
-30663934653466303734633438613337323937626530303966616431633131373232366235393134
-37656235623731613231393865376433643031656332303834393836373730343633336434623662
-65656237663963393932383237376236323866313733313431663030333163313763303834663865
-33386466663336386233353063383532623430396639663035633936336536656134633465313166
-61623236336535323836353736643838303639666331666365313031656163643835313039386638
-3439
+65393739626663636631353831653534323861656537366666376538323531326339373536383136
+6662306664643863626464666234653134656162643761620a623735336339373861326136343939
+36646132643731393563353764323336383639333338373237356564663630626634323931343066
+3463366566643266620a326135326137346430363132356232333335343430333632383737316462
+35616535366534383762386633663931386534303465313230656361376365343033626439366463
+62373636303033356634636139373738376439373463663465306566383937383565623638653266
+63326434373838373839623531623032623630353363633264363430623532373433386162376336
+35323838313330643336636164653864366565643764653861613061383934373634363066653563
+31653431636433356136623666323534613265623631623133366633313833323233626438613464
+39393964396139323136323363346635643665663436396163383365333139323263303130323937
+37343461633535373135373765323534633866376564303464373730323432653862633962343038
+34636138346662636637613265643935343630366432376265613837343438316237333962636265
+32373964306632313230633734643438636536623535646239323562613139316631
 </file>
 
 <file path="ansible/provisioning/configure_proxmox.yml">
@@ -2731,6 +4278,32 @@ $ANSIBLE_VAULT;1.1;AES256
       notify: Restart servarr LXC
       register: passthrough_result
 
+
+# ------------------------------------------------------------------
+    # Tâche 4 : Configurer les privilèges Docker pour Traefik (Fix v3/Proxmox)
+    # ------------------------------------------------------------------
+    - name: "Ensure Docker privileges are configured for the Traefik LXC"
+      ansible.builtin.blockinfile:
+        path: "/etc/pve/lxc/{{ vmid.traefik }}.conf"
+        state: present
+        create: yes
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - Traefik Docker Privileges"
+        block: |
+          lxc.apparmor.profile: unconfined
+          lxc.cgroup2.devices.allow: a
+          lxc.cap.drop:
+      notify: Restart traefik LXC
+
+    - name: "Ensure /dev/kmsg access for Monitoring LXC (Cadvisor)"
+      ansible.builtin.blockinfile:
+        path: "/etc/pve/lxc/204.conf"
+        state: present
+        create: yes
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - Monitoring kmsg"
+        block: |
+          lxc.cgroup2.devices.allow: c 1:11 rwm
+          lxc.mount.entry: /dev/kmsg dev/kmsg none bind,create=file
+      notify: Restart changed LXC
   # ------------------------------------------------------------------
   # Handlers : Gèrent les redémarrages à la fin du play, seulement si nécessaire
   # ------------------------------------------------------------------
@@ -2748,6 +4321,12 @@ $ANSIBLE_VAULT;1.1;AES256
       ansible.builtin.command:
         cmd: "pct reboot {{ vmid.servarr }}"
       listen: Restart servarr LXC
+    
+
+    - name: Restart traefik LXC
+      ansible.builtin.command:
+        cmd: "pct reboot {{ vmid.traefik }}"
+      listen: Restart traefik LXC
 </file>
 
 <file path="ansible/site.yml">
@@ -2757,19 +4336,591 @@ $ANSIBLE_VAULT;1.1;AES256
   roles:
     - role: common
     - role: users
-          
-    
+      
+   
     
 - name: 2. Prepare Proxmox
-  import_playbook: provisioning/configure_proxmox.yml  
-- name: 3. Deploy AdGuard Home
+  import_playbook: provisioning/configure_proxmox.yml 
+
+- name: 3. Deploy traefik
+  import_playbook: provisioning/traefik.yml
+
+- name: 4. Deploy Servarr
+  import_playbook: provisioning/servarr.yml 
+
+- name: 5. Deploy AdGuard Home
   import_playbook: provisioning/adguard.yml 
+- name: 6. Deploy Monitoring
+  import_playbook: provisioning/monitoring.yml
+</file>
 
-- name: 4. Deploy Nginx
-  import_playbook: provisioning/nginx.yml
+<file path="terraform/terraform.tfstate.backup">
+{
+  "version": 4,
+  "terraform_version": "1.13.5",
+  "serial": 39,
+  "lineage": "7c2dd8b7-598d-5e13-9ad0-9e17f8a1d62e",
+  "outputs": {
+    "container_details": {
+      "value": {
+        "adguard": {
+          "ip": "192.168.1.32"
+        },
+        "monitoring": {
+          "ip": "192.168.1.34"
+        },
+        "servarr": {
+          "ip": "192.168.1.31"
+        },
+        "traefik": {
+          "ip": "192.168.1.30"
+        }
+      },
+      "type": [
+        "object",
+        {
+          "adguard": [
+            "object",
+            {
+              "ip": "string"
+            }
+          ],
+          "monitoring": [
+            "object",
+            {
+              "ip": "string"
+            }
+          ],
+          "servarr": [
+            "object",
+            {
+              "ip": "string"
+            }
+          ],
+          "traefik": [
+            "object",
+            {
+              "ip": "string"
+            }
+          ]
+        }
+      ],
+      "sensitive": true
+    }
+  },
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "local_file",
+      "name": "ansible_inventory",
+      "provider": "provider[\"registry.terraform.io/hashicorp/local\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "content": "# This file is automatically generated by Terraform.\n# Do not edit manually!\n\n[lxc_hosts]\nadguard ansible_host=192.168.1.32\nmonitoring ansible_host=192.168.1.34\nservarr ansible_host=192.168.1.31\ntraefik ansible_host=192.168.1.30\n[proxmox_host]\npve ansible_host=192.168.1.50\n[proxmox_host:vars]\nansible_user=root\nservarr_vmid=201 \n[all:vars]\nansible_user=root\nansible_password=clement2509\nansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'",
+            "content_base64": null,
+            "content_base64sha256": "oitzpgnF9dbz7Y8G70Apt+VAuszDLxmaKvnRltNCwDg=",
+            "content_base64sha512": "f7qdg00FcWxBxMrN6pNM22rtcuctk6e/UFjIuVqs4LfXZyz/SRJd6fA+R3hk/BLjvdSl3XZhV4fw1+5zT1o+GA==",
+            "content_md5": "e45b7026357c69f1f693113160caf490",
+            "content_sha1": "cf6c890ef393fa2a7dacdcfd54e73579d07e731e",
+            "content_sha256": "a22b73a609c5f5d6f3ed8f06ef4029b7e540baccc32f199a2af9d196d342c038",
+            "content_sha512": "7fba9d834d05716c41c4cacdea934cdb6aed72e72d93a7bf5058c8b95aace0b7d7672cff49125de9f03e477864fc12e3bdd4a5dd76615787f0d7ee734f5a3e18",
+            "directory_permission": "0777",
+            "file_permission": "0777",
+            "filename": "./../ansible/inventory.tf.ini",
+            "id": "cf6c890ef393fa2a7dacdcfd54e73579d07e731e",
+            "sensitive_content": null,
+            "source": null
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "content"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "sensitive_content"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "dependencies": [
+            "proxmox_lxc.ct_group"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "proxmox_lxc",
+      "name": "ct_group",
+      "provider": "provider[\"registry.terraform.io/telmate/proxmox\"]",
+      "instances": [
+        {
+          "index_key": "adguard",
+          "schema_version": 0,
+          "attributes": {
+            "arch": "amd64",
+            "bwlimit": 0,
+            "clone": null,
+            "clone_storage": null,
+            "cmode": "tty",
+            "console": true,
+            "cores": 1,
+            "cpulimit": 0,
+            "cpuunits": 1024,
+            "current_node": "pve",
+            "description": "",
+            "features": [
+              {
+                "fuse": false,
+                "keyctl": false,
+                "mknod": false,
+                "mount": "",
+                "nesting": true
+              }
+            ],
+            "force": false,
+            "full": null,
+            "hagroup": "",
+            "hastate": "",
+            "hookscript": "",
+            "hostname": "adguard",
+            "id": "pve/lxc/202",
+            "ignore_unpack_errors": false,
+            "lock": "",
+            "memory": 512,
+            "mountpoint": [],
+            "nameserver": "1.1.1.1",
+            "network": [
+              {
+                "bridge": "vmbr0",
+                "firewall": false,
+                "gw": "192.168.1.254",
+                "gw6": "",
+                "hwaddr": "BC:24:11:A6:5C:65",
+                "id": 0,
+                "ip": "192.168.1.32/24",
+                "ip6": "auto",
+                "mtu": 0,
+                "name": "eth0",
+                "rate": 0,
+                "tag": 0,
+                "trunks": "",
+                "type": "veth"
+              }
+            ],
+            "onboot": false,
+            "ostemplate": "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst",
+            "ostype": "debian",
+            "password": "clement2509",
+            "pool": null,
+            "protection": false,
+            "restore": false,
+            "rootfs": [
+              {
+                "acl": false,
+                "quota": false,
+                "replicate": false,
+                "ro": false,
+                "shared": false,
+                "size": "8G",
+                "storage": "local-lvm",
+                "volume": "local-lvm:vm-202-disk-0"
+              }
+            ],
+            "searchdomain": "local",
+            "ssh_public_keys": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMxLcxTX+fvOilwwzkiaVF3hDVeJKLheKfirDOGve6eE bastion",
+            "start": true,
+            "startup": "",
+            "swap": 1024,
+            "tags": "adguard",
+            "target_node": "pve",
+            "template": false,
+            "timeouts": null,
+            "tty": 2,
+            "unique": false,
+            "unprivileged": true,
+            "unused": [],
+            "vmid": 202
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "password"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "ssh_public_keys"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWZhdWx0IjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        },
+        {
+          "index_key": "servarr",
+          "schema_version": 0,
+          "attributes": {
+            "arch": "amd64",
+            "bwlimit": 0,
+            "clone": null,
+            "clone_storage": null,
+            "cmode": "tty",
+            "console": true,
+            "cores": 3,
+            "cpulimit": 0,
+            "cpuunits": 1024,
+            "current_node": "pve",
+            "description": " BEGIN ANSIBLE MANAGED BLOCK - Servarr Passthrough\n END ANSIBLE MANAGED BLOCK - Servarr Passthrough\n",
+            "features": [
+              {
+                "fuse": false,
+                "keyctl": false,
+                "mknod": false,
+                "mount": "",
+                "nesting": true
+              }
+            ],
+            "force": false,
+            "full": null,
+            "hagroup": "",
+            "hastate": "",
+            "hookscript": "",
+            "hostname": "servarr",
+            "id": "pve/lxc/201",
+            "ignore_unpack_errors": false,
+            "lock": "",
+            "memory": 2861,
+            "mountpoint": [],
+            "nameserver": "1.1.1.1",
+            "network": [
+              {
+                "bridge": "vmbr0",
+                "firewall": false,
+                "gw": "192.168.1.254",
+                "gw6": "",
+                "hwaddr": "BC:24:11:00:4C:4D",
+                "id": 0,
+                "ip": "192.168.1.31/24",
+                "ip6": "auto",
+                "mtu": 0,
+                "name": "eth0",
+                "rate": 0,
+                "tag": 0,
+                "trunks": "",
+                "type": "veth"
+              }
+            ],
+            "onboot": false,
+            "ostemplate": "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst",
+            "ostype": "debian",
+            "password": "clement2509",
+            "pool": null,
+            "protection": false,
+            "restore": false,
+            "rootfs": [
+              {
+                "acl": false,
+                "quota": false,
+                "replicate": false,
+                "ro": false,
+                "shared": false,
+                "size": "32G",
+                "storage": "local-lvm",
+                "volume": "local-lvm:vm-201-disk-0"
+              }
+            ],
+            "searchdomain": "local",
+            "ssh_public_keys": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMxLcxTX+fvOilwwzkiaVF3hDVeJKLheKfirDOGve6eE bastion",
+            "start": true,
+            "startup": "",
+            "swap": 1024,
+            "tags": "servarr",
+            "target_node": "pve",
+            "template": false,
+            "timeouts": null,
+            "tty": 2,
+            "unique": false,
+            "unprivileged": true,
+            "unused": [],
+            "vmid": 201
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "password"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "ssh_public_keys"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWZhdWx0IjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        },
+        {
+          "index_key": "traefik",
+          "schema_version": 0,
+          "attributes": {
+            "arch": "amd64",
+            "bwlimit": 0,
+            "clone": null,
+            "clone_storage": null,
+            "cmode": "tty",
+            "console": true,
+            "cores": 1,
+            "cpulimit": 0,
+            "cpuunits": 1024,
+            "current_node": "pve",
+            "description": " BEGIN ANSIBLE MANAGED BLOCK - Traefik Docker Privileges\n END ANSIBLE MANAGED BLOCK - Traefik Docker Privileges\n",
+            "features": [
+              {
+                "fuse": false,
+                "keyctl": false,
+                "mknod": false,
+                "mount": "",
+                "nesting": true
+              }
+            ],
+            "force": false,
+            "full": null,
+            "hagroup": "",
+            "hastate": "",
+            "hookscript": "",
+            "hostname": "traefik",
+            "id": "pve/lxc/200",
+            "ignore_unpack_errors": false,
+            "lock": "",
+            "memory": 512,
+            "mountpoint": [],
+            "nameserver": "1.1.1.1",
+            "network": [
+              {
+                "bridge": "vmbr0",
+                "firewall": false,
+                "gw": "192.168.1.254",
+                "gw6": "",
+                "hwaddr": "BC:24:11:21:5E:2B",
+                "id": 0,
+                "ip": "192.168.1.30/24",
+                "ip6": "auto",
+                "mtu": 0,
+                "name": "eth0",
+                "rate": 0,
+                "tag": 0,
+                "trunks": "",
+                "type": "veth"
+              }
+            ],
+            "onboot": false,
+            "ostemplate": "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst",
+            "ostype": "debian",
+            "password": "clement2509",
+            "pool": null,
+            "protection": false,
+            "restore": false,
+            "rootfs": [
+              {
+                "acl": false,
+                "quota": false,
+                "replicate": false,
+                "ro": false,
+                "shared": false,
+                "size": "8G",
+                "storage": "local-lvm",
+                "volume": "local-lvm:vm-200-disk-0"
+              }
+            ],
+            "searchdomain": "local",
+            "ssh_public_keys": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMxLcxTX+fvOilwwzkiaVF3hDVeJKLheKfirDOGve6eE bastion",
+            "start": true,
+            "startup": "",
+            "swap": 1024,
+            "tags": "traefik",
+            "target_node": "pve",
+            "template": false,
+            "timeouts": null,
+            "tty": 2,
+            "unique": false,
+            "unprivileged": true,
+            "unused": [],
+            "vmid": 200
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "password"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "ssh_public_keys"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWZhdWx0IjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}
+</file>
 
-- name: 5. Deploy Servarr
-  import_playbook: provisioning/servarr.yml
+<file path="terraform/main.tf">
+terraform {
+  required_providers {
+    proxmox = {
+      source  = "telmate/proxmox"
+      version = "3.0.2-rc04"
+    }
+  }
+}
+
+provider "proxmox" {
+  pm_api_url          = var.proxmox_api_url
+  pm_api_token_id     = var.proxmox_api_token_id
+  pm_api_token_secret = var.proxmox_api_token_secret
+  pm_tls_insecure     = true
+  pm_debug            = true
+}
+# resource "proxmox_virtual_environment_network_linux_bridge" "subnet_bridge" {
+#   node_name = var.proxmox_node
+#   name      = "vmbr1"
+#   comment   = "Sous-réseau interne pour les conteneurs Terraform (10.20.30.0/24)"
+  
+#   address   = "10.20.30.1/24" 
+  
+# }
+locals {
+  containers = {
+    traefik = {
+      vmid = 200
+      ip   = "192.168.1.30/24"
+      cores = 1
+      memory = 512
+      swap = 1024
+      rootfs_size = "8G" 
+    }
+    servarr = {
+      vmid = 201
+      ip   = "192.168.1.31/24"
+      cores = 3             
+      memory = 2861
+      swap = 1024
+      rootfs_size = "32G"         
+    }
+    adguard = {
+      vmid = 202
+      ip   = "192.168.1.32/24"
+      cores = 1
+      memory = 512
+      swap = 1024
+      rootfs_size = "8G" 
+    }
+     monitoring = {
+      vmid = 204
+      ip   = "192.168.1.34/24"  # Vérifie que .34 est libre
+      cores = 2
+      memory = 2048
+      swap = 1024
+      rootfs_size = "8G"
+      unprivileged = false
+    }
+  }
+}
+
+
+resource "proxmox_lxc" "ct_group" {
+  # depends_on = [proxmox_virtual_environment_network_linux_bridge.subnet_bridge]
+  for_each = local.containers
+
+  target_node  = var.proxmox_node
+  ostemplate   = var.lxc_template
+  # password     = var.root_password
+  unprivileged = true
+  start        = true
+  
+  rootfs {
+    storage = "local-lvm"
+    size    = each.value.rootfs_size
+  }
+  password = var.root_password
+  ssh_public_keys = var.ssh_public_key
+  nameserver   = "1.1.1.1" # Or your preferred DNS
+  searchdomain = "local"
+  network {
+    name   = "eth0"
+    bridge = "vmbr0"             # On utilise le nouveau pont
+    gw     = "192.168.1.254"        # La passerelle est l'IP du pont vmbr1
+    ip     = each.value.ip
+    ip6    = "auto"
+  }
+  features {
+    nesting = true
+  }
+  # --- Values that are unique for each container ---
+  # 'each.key' is the name (e.g., "adguard", "servarr")
+  # 'each.value' is the map of attributes for that name
+  
+  vmid     = each.value.vmid
+  hostname = each.key
+  tags     = each.key
+  cores    = each.value.cores
+  memory   = each.value.memory
+  swap     = each.value.swap
+  lifecycle {
+    ignore_changes = [
+      description,
+      # On peut aussi ignorer le network si Proxmox change l'ordre des MACs,
+      # mais pour l'instant juste description suffit.
+    ]
+  }
+}
+
+# 3. The output is now much cleaner and automatically updates
+#    if you add/remove containers from the locals map.
+output "container_details" {
+  description = "A map of container details including their IP addresses."
+  value = {
+    for name, container in proxmox_lxc.ct_group : name => {
+      ip = trimsuffix(container.network[0].ip, "/24") # Removes the /24 part for Ansible
+    }
+  }
+  sensitive = true # Mark as sensitive if it contains IPs you want to hide in logs
+}
+
+# This resource creates the Ansible inventory file dynamically.
+resource "local_file" "ansible_inventory" {
+  # The content is generated from the template file and our Terraform data.
+  content = templatefile("${path.module}/inventory.tpl", {
+    # The 'containers' variable in the template will be populated by this map.
+    containers = {
+      for name, container in proxmox_lxc.ct_group : name => {
+        ip = trimsuffix(container.network[0].ip, "/24")
+      }
+    },
+    # Pass the root password to the template for the ansible_password var.
+    root_password = var.root_password
+  })
+  
+  filename = "${path.module}/../ansible/inventory.tf.ini"
+}
 </file>
 
 </files>

@@ -1,44 +1,141 @@
-# Mon Infrastructure Homelab as Code
+    
+# 🏰 Homelab Infrastructure as Code (IaC)
 
-Ce dépôt contient l'intégralité de la configuration de mon infrastructure personnelle (Homelab). Le but de ce projet est de gérer 100% de l'infrastructure en suivant les principes de l'**Infrastructure as Code (IaC)**.
+<div align="center">
 
-La philosophie est simple : aucune configuration manuelle n'est autorisée sur les serveurs. Toute modification doit être effectuée via ce dépôt Git, garantissant une infrastructure **reproductible**, **documentée** et **sécurisée**.
+![Status](https://img.shields.io/badge/Status-Production-2ea44f?style=for-the-badge&logo=check)
+![Terraform](https://img.shields.io/badge/Terraform-v1.9-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)
+![Ansible](https://img.shields.io/badge/Ansible-v2.16-EE0000?style=for-the-badge&logo=ansible&logoColor=white)
+![Jenkins](https://img.shields.io/badge/Jenkins-CI%2FCD-D24939?style=for-the-badge&logo=jenkins&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
-## Architecture Générale
+</div>
 
-L'infrastructure repose sur un hyperviseur Proxmox qui héberge plusieurs conteneurs LXC, chacun avec un rôle défini :
+---
 
-*   **LXC 100 (`lxc-100-adguard`)** : Serveur DNS. Gère le filtrage des publicités et les résolutions DNS locales pour l'ensemble du réseau.
-*   **LXC 101 (`lxc-101-servarr`)** : Cœur applicatif. Héberge la stack de services média (*arrs, Jellyfin) ainsi que des applications personnalisées. Une partie de ses services est routée à travers un tunnel VPN pour la confidentialité.
-*   **LXC 103 (`lxc-102-reverse-proxy`)** : Reverse Proxy. C'est le point d'entrée unique pour tous les services HTTP/S. Il gère la terminaison SSL et le routage des requêtes vers les bons services.
+## 📖 À propos
 
-## Structure du Dépôt
+Ce projet contient l'intégralité du code source permettant de déployer, configurer et maintenir mon infrastructure personnelle (Homelab). Il a été conçu avec une philosophie **"Everything as Code"** stricte : aucune intervention manuelle n'est effectuée sur les serveurs de production.
 
-Chaque dossier à la racine de ce dépôt correspond à un LXC et contient la définition de ses services via `docker-compose`.
+L'objectif est de simuler un environnement d'entreprise réel avec des pratiques **DevOps** modernes : Iac, GitOps, CI/CD, Monitoring et Sécurité.
 
-*   `lxc-100-adguard/` : Définition du service AdGuard Home.
-*   `lxc-101-servarr` : Définition de la stack média complète, incluant le client VPN et une application custom.
-*   `lxc-102-reverse-proxy` : Définition du service Nginx Proxy Manager.
+---
 
-## Déploiement
+## 📐 Architecture
 
-Chaque service est autonome. Pour déployer un LXC :
+L'infrastructure repose sur un hyperviseur **Proxmox VE**. Une machine "Bastion" (Management Node) orchestre le déploiement des autres services via Terraform et Ansible, déclenchée automatiquement par Jenkins.
 
-1.  Se connecter en SSH au LXC cible.
-2.  Cloner ce dépôt : `git clone <URL_DU_DÉPÔT> .`
-3.  Naviguer dans le dossier correspondant (ex: `cd lxc-100-adguard`).
-4.  Créer un fichier `.env` en se basant sur les instructions du `README.md` du sous-dossier. **Ce fichier contient les secrets et n'est pas versionné dans Git.**
-5.  Lancer les services : `docker-compose up -d`.
+graph TD
+    User[💻 Développeur] -->|Git Push| GitHub[GitHub Repo]
+    GitHub -->|Polling (H/5)| Jenkins[⚙️ LXC Jenkins]
+    
+    subgraph "Proxmox Host"
+        Jenkins -->|Build & Push Image| Registry[📦 Docker Registry]
+        Jenkins -->|Trigger Deployment (SSH)| Bastion[🛡️ LXC Bastion]
+        
+        Bastion -->|Provisioning (Terraform)| PVE((Proxmox API))
+        Bastion -->|Configuration (Ansible)| LXCs
+        
+        PVE -.->|Création/Destruction| LXCs
+        
+        subgraph "LXC Containers (Production)"
+            Traefik[🌐 Traefik (Reverse Proxy)]
+            Servarr[🎬 Media Stack + Apps]
+            AdGuard[🛡️ AdGuard (DNS)]
+            Monitoring[📊 Grafana/Prometheus]
+        end
+    end
 
-## Principes Clés Mis en Œuvre
+  
 
-*   **Infrastructure as Code** : Tout est décrit dans des fichiers YAML et géré par Git.
-*   **Gestion des Secrets** : Séparation stricte de la configuration (commitée) et des secrets (via des fichiers `.env` ignorés).
-*   **Isolation** : Chaque service tourne dans son propre conteneur Docker, et chaque groupe de services est isolé dans son LXC.
-*   **Reproductibilité** : Capacité de reconstruire n'importe quel service ou l'infrastructure entière à partir de ce dépôt et d'une sauvegarde des données.
+🛠️ Stack Technique
+Domaine	Technologie	Usage
+Provisioning	Terraform	Création et cycle de vie des conteneurs LXC sur Proxmox.
+Config Mgmt	Ansible	Installation des paquets, sécurisation, déploiement Docker.
+CI/CD	Jenkins	Pipelines déclaratifs pour le build d'images et le déploiement infra.
+Conteneurisation	Docker Compose	Orchestration des micro-services applicatifs.
+Réseau	Traefik	Reverse Proxy avec découverte dynamique des services.
+Accès	Tailscale	Mesh VPN pour l'administration sécurisée sans ouverture de port.
+Monitoring	TIG Stack	Node Exporter, Prometheus, Grafana pour l'observabilité.
+🚀 Flux de Déploiement (CI/CD)
 
-## Prochaines Étapes
+Ce projet implémente un pipeline complet d'intégration et de déploiement continu :
 
-- [ ] **Automatisation du déploiement** avec Ansible pour provisionner les LXC de manière 100% automatique.
-- [ ] **Migration vers Kubernetes (k3s)** pour une orchestration avancée.
-- [ ] **Mise en place de GitOps** avec ArgoCD pour des déploiements continus basés sur les commits Git.
+    CI (Intégration Continue) :
+
+        Modification du code de l'application interne "Budget" (Node.js).
+
+        Jenkins détecte le changement, clone le repo et construit l'image Docker.
+
+        L'image est versionnée et poussée vers le Registre Docker Privé hébergé localement.
+
+    CD (Déploiement Continu) :
+
+        Jenkins se connecte via SSH au Bastion d'Administration.
+
+        Le Bastion récupère la dernière version du code Infra (Git Pull).
+
+        Terraform met à jour l'infrastructure (State local).
+
+        Ansible configure les serveurs et force le redéploiement des conteneurs avec la nouvelle image.
+
+📦 Cartographie des Services
+
+L'infrastructure est segmentée en conteneurs LXC "Unprivileged" pour une sécurité et une isolation maximales.
+LXC ID	Hostname	IP	Rôle Principal
+99	bastion-admin	192.168.1.20	Cerveau de l'infra. Détient les clés SSH, le State Terraform et les secrets. Seul point d'entrée SSH autorisé.
+200	traefik	192.168.1.30	Point d'entrée HTTP/S. Gère le routage, le SSL et le Load Balancing vers les autres LXC.
+201	servarr	192.168.1.31	Applications. Héberge la stack média (*arr, Jellyfin, qBittorrent) et les apps métiers (Budget).
+202	adguard	192.168.1.32	DNS. Filtrage réseau (Pubs/Trackers) et résolution DNS locale (*.homelab.local).
+203	jenkins	192.168.1.33	Usine Logicielle. Serveur Jenkins et Docker Registry (Port 5000).
+204	monitoring	192.168.1.34	Observabilité. Prometheus (Time Series DB), Node Exporter et Grafana.
+🔐 Sécurité & Bonnes Pratiques
+
+    Gestion des Secrets : Les variables sensibles (Mots de passe, Clés API, Hashs) ne sont jamais committées en clair. Elles sont gérées via Ansible Vault ou injectées dynamiquement via le Bastion.
+
+    Moindre Privilège : Tous les conteneurs LXC sont configurés en mode "Unprivileged" pour isoler le root du conteneur du root de l'hôte.
+
+    Isolation Réseau : Utilisation de réseaux Docker internes. Seul Traefik expose les ports 80/443.
+
+    Zéro Port Ouvert : L'accès à l'administration depuis l'extérieur se fait exclusivement via un tunnel Tailscale.
+
+🏁 Démarrage (Bootstrap)
+
+Pour déployer cette infrastructure sur un serveur Proxmox vierge :
+
+    Pré-requis : Un serveur Proxmox VE accessible avec un stockage local-lvm.
+
+    Initialisation du Bastion :
+    Depuis un poste de travail local :
+    code Bash
+
+    
+cd terraform-bastion
+terraform init && terraform apply
+
+  
+
+Configuration du Bastion :
+code Bash
+
+    
+ansible-playbook -i inventory.bastion provisioning/setup_bastion.yml
+
+  
+
+Déploiement Global :
+Connectez-vous au Bastion et lancez le script maître :
+code Bash
+
+        
+    ssh root@192.168.1.20
+    ./deploy_infra.sh
+
+      
+
+👤 Auteur
+
+Clément Trecourt
+Junior DevOps Engineer & Homelab Enthusiast
+
+    "L'automatisation n'est pas une fin en soi, c'est un moyen de dormir tranquille."
