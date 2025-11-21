@@ -25,7 +25,7 @@ services:
       - '--storage.tsdb.retention.time=15d'
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: zcube/cadvisor:latest
     container_name: cadvisor
     restart: unless-stopped
     ports:
