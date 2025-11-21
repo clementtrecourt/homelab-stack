@@ -38,13 +38,13 @@ L'infrastructure fonctionne sur **Proxmox VE** avec un nœud **Bastion** dédié
 %%{init: {
   'theme': 'base', 
   'themeVariables': { 
-    'primaryColor': '#3b4252', 
-    'primaryTextColor': '#eceff4', 
-    'primaryBorderColor': '#4c566a', 
-    'lineColor': '#88c0d0', 
-    'secondaryColor': '#2e3440', 
-    'tertiaryColor': '#434c5e', 
-    'fontFamily': 'Inter, system-ui, sans-serif'
+    'primaryColor': '#161b22', 
+    'primaryTextColor': '#e6edf3', 
+    'primaryBorderColor': '#30363d', 
+    'lineColor': '#7d8590', 
+    'secondaryColor': '#0d1117', 
+    'tertiaryColor': '#21262d', 
+    'fontFamily': '-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif'
   }
 }}%%
 
@@ -87,18 +87,18 @@ graph TB
     Traefik -.->|"<b>Logs</b>"| Monitoring
     Security -.->|"<b>Alertes</b>"| Monitoring
 
-    classDef devStyle fill:#5e81ac,stroke:#81a1c1,stroke-width:2px,color:#eceff4
-    classDef githubStyle fill:#2e3440,stroke:#4c566a,stroke-width:2px,color:#eceff4
-    classDef jenkinsStyle fill:#bf616a,stroke:#d08770,stroke-width:2px,color:#eceff4
-    classDef bastionStyle fill:#5e81ac,stroke:#88c0d0,stroke-width:2px,color:#eceff4
-    classDef registryStyle fill:#81a1c1,stroke:#8fbcbb,stroke-width:2px,color:#eceff4
-    classDef apiStyle fill:#ebcb8b,stroke:#d08770,stroke-width:2px,color:#2e3440
-    classDef proxmoxStyle fill:#3b4252,stroke:#4c566a,stroke-width:2px,color:#eceff4
-    classDef prodStyle fill:#434c5e,stroke:#4c566a,stroke-width:2px,color:#eceff4
-    classDef traefikStyle fill:#8fbcbb,stroke:#88c0d0,stroke-width:2px,color:#2e3440
-    classDef appsStyle fill:#a3be8c,stroke:#8fbcbb,stroke-width:2px,color:#2e3440
-    classDef securityStyle fill:#d08770,stroke:#bf616a,stroke-width:2px,color:#eceff4
-    classDef monitoringStyle fill:#b48ead,stroke:#bf616a,stroke-width:2px,color:#eceff4
+    classDef devStyle fill:#21262d,stroke:#8b949e,stroke-width:2px,color:#e6edf3
+    classDef githubStyle fill:#010409,stroke:#f0f6fc,stroke-width:2px,color:#ffffff
+    classDef jenkinsStyle fill:#21262d,stroke:#d29922,stroke-width:2px,color:#e6edf3
+    classDef bastionStyle fill:#1f2428,stroke:#58a6ff,stroke-width:2px,color:#e6edf3
+    classDef registryStyle fill:#161b22,stroke:#388bfd,stroke-width:2px,color:#e6edf3
+    classDef apiStyle fill:#21262d,stroke:#e3b341,stroke-width:2px,color:#e6edf3
+    classDef proxmoxStyle fill:#161b22,stroke:#30363d,stroke-width:2px,color:#e6edf3
+    classDef prodStyle fill:#0d1117,stroke:#30363d,stroke-width:2px,color:#e6edf3
+    classDef traefikStyle fill:#1f2428,stroke:#bc8cff,stroke-width:2px,color:#e6edf3
+    classDef appsStyle fill:#1f2428,stroke:#3fb950,stroke-width:2px,color:#e6edf3
+    classDef securityStyle fill:#1f2428,stroke:#f85149,stroke-width:2px,color:#e6edf3
+    classDef monitoringStyle fill:#21262d,stroke:#7d8590,stroke-width:2px,color:#e6edf3
 
     class Dev devStyle
     class GitHub githubStyle
