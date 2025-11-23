@@ -2,7 +2,15 @@
 - name: Deploy Traefik
   hosts: traefik
   gather_facts: no
+  become: true # Important pour écrire dans /opt
+  
   tasks:
+    - name: Copy .env file with Cloudflare secrets
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../docker-compose/lxc-200-traefik/.env"
+        dest: "/opt/homelab-stack/docker-compose/lxc-200-traefik/.env"
+        mode: '0600'
+
     - name: Start Traefik with Docker Compose
       community.docker.docker_compose_v2:
         project_src: '/opt/homelab-stack/docker-compose/lxc-200-traefik'
