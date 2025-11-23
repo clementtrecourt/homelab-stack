@@ -14,7 +14,7 @@
   import_playbook: provisioning/traefik.yml
 
 - name: 4. Deploy Authentik
-  import_playbook: provisioning/traefik.yml
+  import_playbook: provisioning/identity.yml
 
 - name: 5. Deploy Servarr
   import_playbook: provisioning/servarr.yml 

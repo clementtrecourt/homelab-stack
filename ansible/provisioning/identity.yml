@@ -1,0 +1,28 @@
+---
+- name: Deploy Authentik (Identity Provider)
+  hosts: identity # (Il faudra ajouter 'identity' dans inventory.tf.ini ou group_vars)
+  become: true
+  
+  tasks:
+    - name: Ensure config directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+        recurse: yes
+      loop:
+        - /media/docker-data/authentik/database
+        - /media/docker-data/authentik/redis
+        - /media/docker-data/authentik/media
+        - /media/docker-data/authentik/certs
+
+    - name: Copy .env file with secrets
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../docker-compose/lxc-205-identity/.env"
+        dest: "/opt/homelab-stack/docker-compose/lxc-205-identity/.env"
+        mode: '0600'
+
+    - name: Start Authentik Stack
+      community.docker.docker_compose_v2:
+        project_src: '/opt/homelab-stack/docker-compose/lxc-205-identity'
+        state: present
