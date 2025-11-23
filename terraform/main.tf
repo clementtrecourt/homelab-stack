@@ -50,11 +50,19 @@ locals {
     }
      monitoring = {
       vmid = 204
-      ip   = "192.168.1.34/24"  # Vérifie que .34 est libre
+      ip   = "192.168.1.34/24" 
       cores = 2
       memory = 2048
       swap = 1024
       rootfs_size = "8G"
+    }
+     identity = {
+      vmid = 205
+      ip   = "192.168.1.35/24"  
+      cores = 2
+      memory = 2048
+      swap = 1024
+      rootfs_size = "10G"
     }
   }
 }

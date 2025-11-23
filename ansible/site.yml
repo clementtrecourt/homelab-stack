@@ -10,13 +10,17 @@
 - name: 2. Prepare Proxmox
   import_playbook: provisioning/configure_proxmox.yml 
 
-- name: 3. Deploy traefik
+- name: 3. Deploy Traefik
   import_playbook: provisioning/traefik.yml
 
-- name: 4. Deploy Servarr
+- name: 4. Deploy Authentik
+  import_playbook: provisioning/traefik.yml
+
+- name: 5. Deploy Servarr
   import_playbook: provisioning/servarr.yml 
 
-- name: 5. Deploy AdGuard Home
+- name: 6. Deploy AdGuard Home
   import_playbook: provisioning/adguard.yml 
-- name: 6. Deploy Monitoring
+
+- name: 7. Deploy Monitoring
   import_playbook: provisioning/monitoring.yml
