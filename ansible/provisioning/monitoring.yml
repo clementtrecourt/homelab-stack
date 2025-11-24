@@ -14,6 +14,7 @@
       loop:
         - /media/docker-data/prometheus/config
         - /media/docker-data/grafana
+        - /media/docker-data/uptime-kuma
     - name: Ensure Grafana data directory permissions
       ansible.builtin.file:
         path: /media/docker-data/grafana

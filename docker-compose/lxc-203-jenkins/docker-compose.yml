@@ -13,6 +13,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - TZ=Europe/Paris
+    extra_hosts:
+      - "jenkins.clem-ops.org:192.168.1.30"
+      - "authentik.clem-ops.org:192.168.1.30"
 
   # N'OUBLIE PAS D'AJOUTER ÇA :
   registry:
