@@ -18,9 +18,9 @@ provider "proxmox" {
 #   node_name = var.proxmox_node
 #   name      = "vmbr1"
 #   comment   = "Sous-réseau interne pour les conteneurs Terraform (10.20.30.0/24)"
-  
-#   address   = "10.20.30.1/24" 
-  
+
+#   address   = "10.20.30.1/24"
+
 # }
 locals {
   containers = {
@@ -30,15 +30,15 @@ locals {
       cores = 1
       memory = 512
       swap = 1024
-      rootfs_size = "8G" 
+      rootfs_size = "8G"
     }
     servarr = {
       vmid = 201
       ip   = "192.168.1.31/24"
-      cores = 3             
+      cores = 3
       memory = 2861
       swap = 1024
-      rootfs_size = "32G"         
+      rootfs_size = "32G"
     }
     adguard = {
       vmid = 202
@@ -46,11 +46,11 @@ locals {
       cores = 1
       memory = 512
       swap = 1024
-      rootfs_size = "8G" 
+      rootfs_size = "8G"
     }
      monitoring = {
       vmid = 204
-      ip   = "192.168.1.34/24" 
+      ip   = "192.168.1.34/24"
       cores = 2
       memory = 2048
       swap = 1024
@@ -58,7 +58,7 @@ locals {
     }
      identity = {
       vmid = 205
-      ip   = "192.168.1.35/24"  
+      ip   = "192.168.1.35/24"
       cores = 2
       memory = 2048
       swap = 1024
@@ -85,7 +85,7 @@ resource "proxmox_lxc" "ct_group" {
   # password     = var.root_password
   unprivileged = true
   start        = true
-  
+  onboot = true
   rootfs {
     storage = "local-lvm"
     size    = each.value.rootfs_size
@@ -107,7 +107,7 @@ resource "proxmox_lxc" "ct_group" {
   # --- Values that are unique for each container ---
   # 'each.key' is the name (e.g., "adguard", "servarr")
   # 'each.value' is the map of attributes for that name
-  
+
   vmid     = each.value.vmid
   hostname = each.key
   tags     = each.key
@@ -148,6 +148,6 @@ resource "local_file" "ansible_inventory" {
     # Pass the root password to the template for the ansible_password var.
     root_password = var.root_password
   })
-  
+
   filename = "${path.module}/../ansible/inventory.tf.ini"
 }
