@@ -64,6 +64,14 @@ locals {
       swap = 1024
       rootfs_size = "10G"
     }
+    WorkVM = {
+      vmid = 500
+      ip = "192.168.1.36/24"
+      cores = 2
+      memory = 1024
+      swap = 1024
+      rootfs_size = "10G"
+    }
   }
 }
 
