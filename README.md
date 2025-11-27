@@ -64,7 +64,7 @@ graph TB
             direction LR
             Traefik["<b>🌐 Traefik</b><br/><i>Reverse Proxy</i><br/><i>SSL/TLS</i>"]
             Apps["<b>🚀 Applications</b><br/><i>Docker Compose</i><br/><i>Microservices</i>"]
-            Security["<b>🔐 Sécurité</b><br/><i>AdGuard</i><br/><i>Authelia</i>"]
+            Security["<b>🔐 Sécurité</b><br/><i>AdGuard</i><br/><i>Authentik</i>"]
             Monitoring["<b>📊 Observabilité</b><br/><i>Prometheus</i><br/><i>Grafana</i><br/><i>Loki</i>"]
         end
     end
@@ -139,6 +139,7 @@ graph TB
 
 | Composant | Technologie | Objectif |
 |-----------|-----------|---------|
+| **Identité** | Authentik | Provider d'identité centralisé (SSO), MFA et gestion des accès |
 | **VPN** | Tailscale | Réseau mesh sécurisé pour l'administration |
 | **Secrets** | Ansible Vault | Gestion chiffrée des identifiants |
 | **Métriques** | Prometheus + Node Exporter | Collecte de métriques time-series |
@@ -231,6 +232,7 @@ La sécurité est intégrée dès la phase de conception (**Security by Design**
 
 | Couche | Implémentation |
 |-------|---------------|
+| **Authentification Unifiée** | Portail SSO unique (Authentik) protégeant tous les services internes |
 | **Moindre Privilège** | Tous les conteneurs LXC fonctionnent en mode non-privilégié (pas de root sur l'hôte) |
 | **Gestion Secrets** | Zéro identifiant en clair — chiffrement Ansible Vault |
 | **Segmentation Réseau** | Zone production isolée du réseau de management |
@@ -250,6 +252,7 @@ La sécurité est intégrée dès la phase de conception (**Security by Design**
 | 201 | `servarr` | 192.168.1.31 | 4 | 8GB | Serveur Applications · Docker Compose |
 | 203 | `jenkins` | 192.168.1.33 | 2 | 4GB | Contrôleur CI/CD · Registre Docker |
 | 204 | `monitoring` | 192.168.1.34 | 2 | 4GB | Prometheus · Grafana · Alerting |
+| 205 | `identity` | 192.168.1.35 | 2 | 4GB | Authentik · SSO · Provider OIDC/LDAP |
 
 ---
 
