@@ -343,7 +343,7 @@ homelab-infrastructure/
 - [ ] **Haute Disponibilité** : Ajout clustering Proxmox (setup 3 nœuds)
 - [ ] **Observabilité** : Intégration Loki pour centralisation logs
 - [ ] **Sécurité** : Implémentation Vault pour génération dynamique secrets
-- [ ] **Script** : Ajout de nouveau script (ex: créer uen nouvelle lxc sans toucher au code)
+- [ ] **Script** : Ajout de nouveau script (ex: créer un nouveau lxc sans toucher au code)
 ---
 
 ## 📚 Ressources & Documentation
