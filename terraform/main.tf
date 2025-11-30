@@ -71,7 +71,7 @@ locals {
       memory = 2048
       swap = 1024
       rootfs_size = "20G"
-      privileged = true
+      # privileged = true
     }
      worker-1 = {
       vmid = 301
@@ -80,7 +80,7 @@ locals {
       memory = 2048
       swap = 1024
       rootfs_size = "20G"
-      privileged = true
+      # privileged = true
     }
      worker-2 = {
       vmid = 302
@@ -89,7 +89,7 @@ locals {
       memory = 2048
       swap = 1024
       rootfs_size = "20G"
-      privileged = true
+      # privileged = true
     }
   }
 }
