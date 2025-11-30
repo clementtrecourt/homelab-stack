@@ -1,34 +1,17 @@
 pipeline {
     agent any
 
-    // Surveille GitHub toutes les 5 minutes
+    // On surveille GitHub toutes les 5 min
     triggers {
         pollSCM('H/5 * * * *')
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                // Récupère toutes les branches depuis GitHub
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: '**']],  // Toutes les branches
-                    doGenerateSubmoduleConfigurations: false,
-                    extensions: [
-                        [$class: 'CloneOption', noTags: false, shallow: false]
-                    ],
-                    userRemoteConfigs: [[
-                        url: 'git@github.com:tonuser/tonrepo.git',
-                        refspec: '+refs/heads/*:refs/remotes/origin/*'
-                    ]]
-                ])
-            }
-        }
-
         stage('Deploy on Bastion') {
             steps {
                 script {
                     echo "Lancement du déploiement sur le Bastion..."
+                    // On utilise la clé SSH de l'utilisateur 'jenkins' du conteneur
                     sh "ssh -o StrictHostKeyChecking=no clem@192.168.1.20 '/home/clem/deploy_infra.sh'"
                 }
             }
