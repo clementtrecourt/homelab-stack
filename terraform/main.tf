@@ -64,26 +64,43 @@ locals {
       swap = 1024
       rootfs_size = "10G"
     }
-    WorkVM = {
-      vmid = 500
-      ip = "192.168.1.36/24"
+    master = {
+      vmid = 300
+      ip   = "192.168.1.40/24"
       cores = 2
-      memory = 1024
+      memory = 2048
       swap = 1024
-      rootfs_size = "10G"
+      rootfs_size = "20G"
+      privileged = true
+    }
+     worker-1 = {
+      vmid = 301
+      ip   = "192.168.1.41/24"
+      cores = 2
+      memory = 2048
+      swap = 1024
+      rootfs_size = "20G"
+      privileged = true
+    }
+     worker-2 = {
+      vmid = 302
+      ip   = "192.168.1.42/24"
+      cores = 2
+      memory = 2048
+      swap = 1024
+      rootfs_size = "20G"
+      privileged = true
     }
   }
 }
 
 
 resource "proxmox_lxc" "ct_group" {
-  # depends_on = [proxmox_virtual_environment_network_linux_bridge.subnet_bridge]
   for_each = local.containers
 
   target_node  = var.proxmox_node
   ostemplate   = var.lxc_template
-  # password     = var.root_password
-  unprivileged = true
+  unprivileged = lookup(each.value, "privileged", false) ? false : true
   start        = true
   onboot = true
   rootfs {
@@ -97,7 +114,7 @@ resource "proxmox_lxc" "ct_group" {
   network {
     name   = "eth0"
     bridge = "vmbr0"             # On utilise le nouveau pont
-    gw     = "192.168.1.254"        # La passerelle est l'IP du pont vmbr1
+    gw     = "192.168.1.254"
     ip     = each.value.ip
     ip6    = "auto"
   }
