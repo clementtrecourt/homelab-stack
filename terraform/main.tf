@@ -120,9 +120,9 @@ resource "proxmox_lxc" "ct_group" {
   }
   features {
     nesting = true
-    keyctl  = true
-    mknod   = true
-    fuse    = true
+    # keyctl  = true
+    # mknod   = true
+    # fuse    = true
   }
   # --- Values that are unique for each container ---
   # 'each.key' is the name (e.g., "adguard", "servarr")
