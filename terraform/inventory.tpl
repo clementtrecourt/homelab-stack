@@ -5,11 +5,26 @@
 %{ for name, container in containers ~}
 ${name} ansible_host=${container.ip}
 %{ endfor ~}
+
+[lxc_hosts_master]
+%{ for name, container in containers ~}
+%{ if container.role == "master" }${name} ansible_host=${container.ip}
+%{ endif ~}
+%{ endfor ~}
+
+[lxc_hosts_workers]
+%{ for name, container in containers ~}
+%{ if container.role == "worker" }${name} ansible_host=${container.ip}
+%{ endif ~}
+%{ endfor ~}
+
 [proxmox_host]
 pve ansible_host=192.168.1.50
+
 [proxmox_host:vars]
 ansible_user=root
-servarr_vmid=201 
+servarr_vmid=201
+
 [all:vars]
 ansible_user=root
 ansible_password=${root_password}

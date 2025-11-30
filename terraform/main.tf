@@ -25,71 +25,71 @@ provider "proxmox" {
 locals {
   containers = {
     traefik = {
-      vmid = 200
-      ip   = "192.168.1.30/24"
-      cores = 1
-      memory = 512
-      swap = 1024
+      vmid        = 200
+      ip          = "192.168.1.30/24"
+      cores       = 1
+      memory      = 512
+      swap        = 1024
       rootfs_size = "8G"
     }
     servarr = {
-      vmid = 201
-      ip   = "192.168.1.31/24"
-      cores = 3
-      memory = 2861
-      swap = 1024
+      vmid        = 201
+      ip          = "192.168.1.31/24"
+      cores       = 3
+      memory      = 2861
+      swap        = 1024
       rootfs_size = "32G"
     }
     adguard = {
-      vmid = 202
-      ip   = "192.168.1.32/24"
-      cores = 1
-      memory = 512
-      swap = 1024
+      vmid        = 202
+      ip          = "192.168.1.32/24"
+      cores       = 1
+      memory      = 512
+      swap        = 1024
       rootfs_size = "8G"
     }
-     monitoring = {
-      vmid = 204
-      ip   = "192.168.1.34/24"
-      cores = 2
-      memory = 2048
-      swap = 1024
+    monitoring = {
+      vmid        = 204
+      ip          = "192.168.1.34/24"
+      cores       = 2
+      memory      = 2048
+      swap        = 1024
       rootfs_size = "8G"
     }
-     identity = {
-      vmid = 205
-      ip   = "192.168.1.35/24"
-      cores = 2
-      memory = 2048
-      swap = 1024
+    identity = {
+      vmid        = 205
+      ip          = "192.168.1.35/24"
+      cores       = 2
+      memory      = 2048
+      swap        = 1024
       rootfs_size = "10G"
     }
     master = {
-      vmid = 300
-      ip   = "192.168.1.40/24"
-      cores = 2
-      memory = 2048
-      swap = 1024
+      vmid        = 300
+      ip          = "192.168.1.40/24"
+      cores       = 2
+      memory      = 2048
+      swap        = 1024
       rootfs_size = "20G"
-      # privileged = true
+      role        = "master"
     }
-     worker-1 = {
-      vmid = 301
-      ip   = "192.168.1.41/24"
-      cores = 2
-      memory = 2048
-      swap = 1024
+    worker-1 = {
+      vmid        = 301
+      ip          = "192.168.1.41/24"
+      cores       = 2
+      memory      = 2048
+      swap        = 1024
       rootfs_size = "20G"
-      # privileged = true
+      role        = "worker"
     }
-     worker-2 = {
-      vmid = 302
-      ip   = "192.168.1.42/24"
-      cores = 2
-      memory = 2048
-      swap = 1024
+    worker-2 = {
+      vmid        = 302
+      ip          = "192.168.1.42/24"
+      cores       = 2
+      memory      = 2048
+      swap        = 1024
       rootfs_size = "20G"
-      # privileged = true
+      role        = "worker"
     }
   }
 }
@@ -102,18 +102,18 @@ resource "proxmox_lxc" "ct_group" {
   ostemplate   = var.lxc_template
   unprivileged = lookup(each.value, "privileged", false) ? false : true
   start        = true
-  onboot = true
+  onboot       = true
   rootfs {
     storage = "local-lvm"
     size    = each.value.rootfs_size
   }
-  password = var.root_password
+  password        = var.root_password
   ssh_public_keys = var.ssh_public_key
-  nameserver   = "1.1.1.1" # Or your preferred DNS
-  searchdomain = "local"
+  nameserver      = "1.1.1.1" # Or your preferred DNS
+  searchdomain    = "local"
   network {
     name   = "eth0"
-    bridge = "vmbr0"             # On utilise le nouveau pont
+    bridge = "vmbr0" # On utilise le nouveau pont
     gw     = "192.168.1.254"
     ip     = each.value.ip
     ip6    = "auto"
@@ -157,15 +157,13 @@ output "container_details" {
 
 # This resource creates the Ansible inventory file dynamically.
 resource "local_file" "ansible_inventory" {
-  # The content is generated from the template file and our Terraform data.
   content = templatefile("${path.module}/inventory.tpl", {
-    # The 'containers' variable in the template will be populated by this map.
     containers = {
       for name, container in proxmox_lxc.ct_group : name => {
-        ip = trimsuffix(container.network[0].ip, "/24")
+        ip   = trimsuffix(container.network[0].ip, "/24")
+        role = lookup(local.containers[name], "role", "") # <-- Ajout du rôle
       }
     },
-    # Pass the root password to the template for the ansible_password var.
     root_password = var.root_password
   })
 
