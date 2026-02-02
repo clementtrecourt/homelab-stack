@@ -44,3 +44,10 @@ npm-debug.log
 *.bak
 *.tar.gz
 *.backup
+
+
+# Ignore Python virtual environments
+ansible/env/
+*.pyc
+__pycache__/
+
