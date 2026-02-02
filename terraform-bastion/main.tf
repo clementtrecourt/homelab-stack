@@ -17,7 +17,7 @@ provider "proxmox" {
 resource "proxmox_lxc" "bastion" {
   target_node  = var.proxmox_node
   hostname     = "bastion-admin"
-  vmid         = 100              # ID 99 pour le distinguer des autres (100+)
+  vmid         = 999              # ID 99 pour le distinguer des autres (100+)
   ostemplate   = var.lxc_template
   unprivileged = true
   

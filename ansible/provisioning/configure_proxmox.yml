@@ -1,6 +1,3 @@
-# ======================================================================
-# Play : Gérer la configuration des conteneurs sur l'hôte Proxmox
-# ======================================================================
 - name: Configure LXC Settings on Proxmox Host
   hosts: proxmox_host
   become: true
@@ -9,45 +6,40 @@
     - ../group_vars/all.yml
   
   vars:
-    # UID/GID de l'utilisateur DANS les conteneurs LXC
     lxc_user_uid: 1000
     lxc_user_gid: 1000
-
-    # Calcul de l'UID/GID mappé sur l'hôte PVE (par défaut, Proxmox ajoute 100000)
     host_mapped_uid: "{{ 100000 | int + lxc_user_uid | int }}"
     host_mapped_gid: "{{ 100000 | int + lxc_user_gid | int }}"
 
-    # Chemin source sur l'hôte PVE
-    docker_data_source_path: "/media"
+    # CORRECTION : On utilise /data (ton disque de 1 To)
+    docker_data_source_path: "/data/docker-containers"
     
   tasks:
-    # ------------------------------------------------------------------
-    # Tâche 1 : Préparer le dossier sur l'hôte PVE avec les permissions mappées
-    # ------------------------------------------------------------------
-    - name: "Ensure the Docker data directory exists on the PVE host"
+    - name: "Ensure the base Docker data directory exists on PVE"
       ansible.builtin.file:
         path: "{{ docker_data_source_path }}"
         state: directory
         mode: '0755'
 
-    - name: "Ensure ownership is set to the MAPPED UID/GID on the PVE host"
+    - name: "Create separate subdirectories for each LXC"
       ansible.builtin.file:
-        path: "{{ docker_data_source_path }}/"
-        owner: "{{ host_mapped_uid }}"   # <-- CORRECTION CRUCIALE
-        group: "{{ host_mapped_gid }}"   # <-- CORRECTION CRUCIALE
-        recurse: yes
-        
-    # ------------------------------------------------------------------
-    # Tâche 2 : Configurer le point de montage dans les fichiers .conf des LXC
-    # ------------------------------------------------------------------
-    - name: "Ensure /media/docker-data is mounted in all LXCs"
+        path: "{{ docker_data_source_path }}/{{ item }}"
+        state: directory
+        owner: "{{ host_mapped_uid }}"
+        group: "{{ host_mapped_gid }}"
+        mode: '0755'
+      loop: "{{ groups['lxc_hosts'] }}"
+
+    - name: "Ensure mount points are configured in LXC .conf files"
       ansible.builtin.lineinfile:
+        # CORRECTION : Utilisation de default(200) pour éviter les erreurs si un ID manque
         path: "/etc/pve/lxc/{{ vmid[item] }}.conf"
-        line: "mp0: {{ docker_data_source_path }},mp={{ docker_data_source_path }}"
-        regexp: "^mp0:"  # Assure qu'il n'y a qu'une seule ligne mp0
+        # On monte /data/docker-containers/nom_du_lxc dans /media/docker-data à l'intérieur du LXC
+        line: "mp0: {{ docker_data_source_path }}/{{ item }},mp=/media/docker-data"
+        regexp: "^mp0:"
         state: present
       loop: "{{ groups['lxc_hosts'] }}"
-      notify: Restart changed LXC # On notifie un handler pour le redémarrage
+      notify: Restart changed LXC
       register: mount_results
 
     # ------------------------------------------------------------------
@@ -85,11 +77,10 @@
           lxc.cap.drop:
       notify: Restart traefik LXC
 
-    - name: "Ensure /dev/kmsg access for Monitoring LXC (Cadvisor)"
+    - name: "Ensure /dev/kmsg access for Monitoring LXC"
       ansible.builtin.blockinfile:
-        path: "/etc/pve/lxc/204.conf"
+        path: "/etc/pve/lxc/{{ vmid.monitoring }}.conf" # CORRECTION : Pas de ID en dur (204)
         state: present
-        create: yes
         marker: "# {mark} ANSIBLE MANAGED BLOCK - Monitoring kmsg"
         block: |
           lxc.cgroup2.devices.allow: c 1:11 rwm

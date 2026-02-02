@@ -112,10 +112,10 @@ services:
       - "5055:5055"
     restart: unless-stopped
 
-  gestionnaire-app:
-    image: 192.168.1.33:5000/budget-app:latest
-    restart: unless-stopped
-    ports:
-      - "2000:2000"
-    volumes:
-      - /media/docker-data/budget/data:/app/data
+  # gestionnaire-app:
+  #   image: 192.168.1.33:5000/budget-app:latest
+  #   restart: unless-stopped
+  #   ports:
+  #     - "2000:2000"
+  #   volumes:
+  #     - /media/docker-data/budget/data:/app/data

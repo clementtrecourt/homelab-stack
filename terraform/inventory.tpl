@@ -6,7 +6,7 @@
 ${name} ansible_host=${container.ip}
 %{ endfor ~}
 [proxmox_host]
-pve ansible_host=192.168.1.50
+pve ansible_host=192.168.1.120
 [proxmox_host:vars]
 ansible_user=root
 servarr_vmid=201 
@@ -14,3 +14,4 @@ servarr_vmid=201
 ansible_user=root
 ansible_password=${root_password}
 ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+vmid={ %{ for name, container in containers ~}"${name}": ${container.vmid}, %{ endfor ~} }
