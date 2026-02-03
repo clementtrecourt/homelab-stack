@@ -12,12 +12,12 @@ terraform.rc
 terraform.tfvars
 terraform.tfvars.json
 .terraform/providers/
-
+projet.txt
 # --- Ansible ---
 *.retry
 .vault_pass
 ansible/inventory.tf.ini
-
+infrastructure/ansible/env
 # --- Secrets & Env ---
 .env
 *.env

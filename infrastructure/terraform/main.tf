@@ -71,7 +71,7 @@ resource "proxmox_lxc" "ct_group" {
 # --- RESSOURCE VM (K3S) ---
 resource "proxmox_vm_qemu" "k3s_cluster" {
   for_each = local.k3s_nodes
-
+  
   # Bloc CPU correct (les cores sont définis ici)
   cpu {
     type    = "host"
@@ -111,7 +111,7 @@ resource "proxmox_vm_qemu" "k3s_cluster" {
   ipconfig0 = "ip=${each.value.ip}/24,gw=192.168.1.254"
   ciuser    = "devops"
   sshkeys   = var.ssh_public_key
-
+  
   lifecycle {
     ignore_changes = [
       network,
