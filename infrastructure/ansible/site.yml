@@ -1,0 +1,56 @@
+---
+- name: 1. Common Configuration
+  hosts: all
+  become: yes
+  roles:
+    - role: common
+    - role: users
+
+- name: 2. Deploy Utility Services (LXC)
+  hosts: utility_hosts
+  tasks:
+    - name: Deploy Traefik
+      import_playbook: provisioning/traefik.yml
+      when: inventory_hostname == 'traefik'\
+
+    - name: Prepare Proxmox
+      import_playbook: provisioning/configure_proxmox.yml 
+
+    - name: Deploy Authentik
+      import_playbook: provisioning/identity.yml
+
+    - name: Deploy Servarr
+      import_playbook: provisioning/servarr.yml 
+
+    - name: Deploy AdGuard Home
+      import_playbook: provisioning/adguard.yml 
+
+    - name: Deploy Monitoring
+      import_playbook: provisioning/monitoring.yml
+
+- name: 3. Provision K3s Cluster
+  hosts: k3s_cluster
+  become: yes
+  tasks:
+    - name: Install K3s on Master
+      include_tasks: tasks/k3s_master_install.yml
+      when: inventory_hostname in groups['k3s_master']
+
+    - name: Get Token from Master
+      shell: cat /var/lib/rancher/k3s/server/node-token
+      register: k3s_token
+      delegate_to: k3s-master
+      when: inventory_hostname in groups['k3s_workers']
+
+    - name: Install K3s on Workers
+      include_tasks: tasks/k3s_worker_install.yml
+      when: inventory_hostname in groups['k3s_workers']
+
+- name: 4. Local Setup
+  hosts: k3s_master
+  tasks:
+    - name: Copy Kubeconfig to Bastion
+      fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: ~/.kube/config
+        flat: yes
