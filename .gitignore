@@ -51,3 +51,7 @@ ansible/env/
 *.pyc
 __pycache__/
 
+htpasswd
+kubectlinfrastructure/ansible/env/
+venv/
+*.pyc
