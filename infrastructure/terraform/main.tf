@@ -2,7 +2,7 @@ terraform {
   required_providers {
     proxmox = {
       source  = "telmate/proxmox"
-      version = "3.0.2-rc04"
+      version = "3.0.2-rc07"
     }
   }
 }
@@ -51,7 +51,7 @@ resource "proxmox_lxc" "ct_group" {
 
   password        = var.root_password
   ssh_public_keys = var.ssh_public_key
-  
+
   network {
     name   = "eth0"
     bridge = "vmbr0"
@@ -65,41 +65,72 @@ resource "proxmox_lxc" "ct_group" {
 
   vmid     = each.value.vmid
   hostname = each.key
-  cores    = each.value.cores  # ✅ valid for LXC
+  cores    = each.value.cores # ✅ valid for LXC
   memory   = each.value.memory
 }
 # --- RESSOURCE VM (K3S) ---
 resource "proxmox_vm_qemu" "k3s_cluster" {
   for_each = local.k3s_nodes
-  
-  # Bloc CPU correct (les cores sont définis ici)
+
+  name        = each.key
+  vmid        = each.value.vmid
+  target_node = var.proxmox_node
+
+  clone      = "ubuntu-2404-k3s-template"
+  full_clone = true
+
+  # 1. FORCE UEFI & AGENT
+  bios    = "ovmf"
+  machine = "q35"
+  agent   = 1 # Force l'agent à 1 (il était à 0 dans ton config)
+
+  # 2. IMPORTANT : Taille du disque >= Taille du Template (32G)
+  # Sinon Terraform détache le disque !
+  disk {
+    slot    = "virtio0"
+    size    = "32G" # <--- ICI : Change 20G en 32G
+    type    = "disk"
+    storage = "local-lvm"
+    discard = true
+  }
+  serial {
+    id = 0
+  }
+  # 3. Disque EFI pour le boot
+  efidisk {
+    efitype = "4m"
+    storage = "local-lvm"
+  }
+  disk {
+    slot    = "ide2"
+    type    = "cloudinit"
+    storage = "local-lvm"
+  }
+  # 4. Ordre de boot
+  boot = "order=virtio0"
+
+  # 5. Configuration Cloud-Init
+  os_type   = "cloud-init"
+  ipconfig0 = "ip=${each.value.ip}/24,gw=192.168.1.254"
+  ciuser    = "devops"
+  sshkeys   = var.ssh_public_key
+
+  # AJOUT DU SCRIPT K3S (Manquant dans ton config)
+  cicustom  = "vendor=local:snippets/k3s-prep.yaml"
+  ciupgrade = true
+
+  nameserver = "1.1.1.1 8.8.8.8"
+  skip_ipv6  = true
+  # Hardware
   cpu {
     type    = "host"
     sockets = 1
     cores   = each.value.cores
   }
-
-  name        = each.key
-  vmid        = each.value.vmid
-  target_node = var.proxmox_node
-  clone       = "ubuntu-2204-template"
-  full_clone  = true
-  
-  agent       = 1
-  os_type     = "cloud-init"
-  
-  # SUPPRIMÉ : cores = each.value.cores (Ligne 88 qui causait l'erreur)
-
-  memory      = each.value.memory
-  scsihw      = "virtio-scsi-pci"
-  bootdisk    = "scsi0"
-
-  disk {
-    slot            = "scsi0"
-    size            = "20G"
-    type            = "disk"
-    storage         = "local-lvm"
-    discard         = true
+  memory = each.value.memory
+  scsihw = "virtio-scsi-pci"
+  vga {
+    type = "std"
   }
 
   network {
@@ -107,11 +138,7 @@ resource "proxmox_vm_qemu" "k3s_cluster" {
     model  = "virtio"
     bridge = "vmbr0"
   }
-
-  ipconfig0 = "ip=${each.value.ip}/24,gw=192.168.1.254"
-  ciuser    = "devops"
-  sshkeys   = var.ssh_public_key
-  
+  force_create = true
   lifecycle {
     ignore_changes = [
       network,
@@ -132,18 +159,18 @@ output "vm_ips" {
 # --- GENERATION INVENTAIRE ANSIBLE ---
 resource "local_file" "ansible_inventory" {
   content = templatefile("${path.module}/inventory.tpl", {
-    # On construit un map complet pour le template
     containers = merge(
-      { for name, ct in proxmox_lxc.ct_group : name => { 
-          ip   = trimsuffix(ct.network[0].ip, "/24")
-          vmid = ct.vmid
-        } 
+      { for name, ct in proxmox_lxc.ct_group : name => {
+        ip   = try(trimsuffix(ct.network[0].ip, "/24"), "IP_LXC_A_VENIR")
+        vmid = ct.vmid
+        }
       },
-      { for name, vm in proxmox_vm_qemu.k3s_cluster : name => { 
-          # On utilise coalesce pour éviter les erreurs si l'IP n'est pas encore connue
-          ip   = vm.default_ipv4_address != "" ? vm.default_ipv4_address : "IP_A_VENIR"
-          vmid = vm.vmid
-        } 
+      { for name, vm in proxmox_vm_qemu.k3s_cluster : name => {
+        # On essaie d'abord l'IP rapportée par l'agent, 
+        # sinon on prend l'IP que l'on a définie dans local.k3s_nodes
+        ip   = (vm.default_ipv4_address != null && vm.default_ipv4_address != "") ? vm.default_ipv4_address : local.k3s_nodes[name].ip
+        vmid = vm.vmid
+        }
       }
     ),
     root_password = var.root_password

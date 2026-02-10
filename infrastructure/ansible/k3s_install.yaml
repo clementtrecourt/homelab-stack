@@ -1,0 +1,27 @@
+---
+- name: Installer K3s Master
+  hosts: k3s_master
+  become: yes
+  tasks:
+    - name: Installation Script
+      shell: curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode 644 --node-name {{ inventory_hostname }} --tls-san {{ ansible_host }} --disable traefik --disable servicelb
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Lire le token
+      slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: node_token_b64
+
+    - name: Stocker le token
+      set_fact:
+        join_token: "{{ node_token_b64.content | b64decode | trim }}"
+
+- name: Installer K3s Workers
+  hosts: k3s_workers
+  become: yes
+  tasks:
+    - name: Rejoindre le cluster
+      shell: "curl -sfL https://get.k3s.io | K3S_URL=https://{{ hostvars['k3s-master']['ansible_host'] }}:6443 K3S_TOKEN={{ hostvars['k3s-master']['join_token'] }} sh -s - agent --node-name {{ inventory_hostname }}"
+      args:
+        creates: /usr/local/bin/k3s-agent
