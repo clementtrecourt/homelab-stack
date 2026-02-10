@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: system-apps
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/clementtrecourt/homelab-stack.git'
+    
+    targetRevision: feat/k3s-migration
+    
+    path: kubernetes/system
+    
+
+    directory:
+      recurse: true
+
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: kube-system
+
+  syncPolicy:
+    automated:
+      prune: true      
+      selfHeal: true   
+    syncOptions:
+      - CreateNamespace=true

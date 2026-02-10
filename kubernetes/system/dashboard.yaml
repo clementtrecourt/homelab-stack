@@ -1,0 +1,30 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: admin-auth
+  namespace: kube-system
+spec:
+  basicAuth:
+    secret: admin-auth-secret
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-dashboard
+  namespace: kube-system
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-cloudflare
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    # Correction ici : Ajout du ` après .org
+    - match: Host(`traefik.clem-ops.org`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
+      kind: Rule
+      services:
+        - name: api@internal
+          kind: TraefikService
+      middlewares:
+        - name: admin-auth
+  tls:
+    secretName: clem-ops-org-tls

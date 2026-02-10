@@ -1,0 +1,60 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    global:
+      checkNewVersion: false
+      sendAnonymousUsage: false
+
+    logs:
+      general:
+        level: INFO
+      access:
+        enabled: true
+        format: json
+
+    providers:
+      kubernetesCRD:
+        enabled: true
+        allowCrossNamespace: true
+      kubernetesIngress:
+        enabled: true
+        publishedService:
+          enabled: true
+
+    ports:
+      web:
+        port: 8000
+        expose: true        # On repasse en booléen simple pour corriger l'erreur
+        exposedPort: 80
+        redirections:
+          entryPoint:
+            to: websecure
+            scheme: https
+      
+      websecure:
+        port: 8443
+        expose: true        # Ici aussi, booléen simple
+        exposedPort: 443
+        http3:
+          enabled: true
+        tls:
+          enabled: true
+
+    tlsOptions:
+      default:
+        minVersion: VersionTLS13
+        sniStrict: false
+
+    persistence:
+      enabled: true
+      accessMode: ReadWriteOnce
+      size: 128Mi
+      path: /data
+
+    ingressRoute:
+      dashboard:
+        enabled: false

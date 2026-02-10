@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: kube-system
+  labels:
+    app: cloudflared
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      containers:
+      - name: cloudflared
+        image: cloudflare/cloudflared:latest
+        args:
+        - tunnel
+        - run
+        - --token
+        - eyJhIjoiMDZiMThkZDc5ZDQwMjRjODI2NWI2ZTg2Y2EwNzYyYjUiLCJ0IjoiMDE4ZTJmYjgtMTgxYy00Y2Y2LWExMmEtZWM1Y2U2YTIwMDEwIiwicyI6IlkyUmxOemhqT1RndFpEWTFZUzAwWXpabUxUZzJPREl0T1RZNVkyTTNOR0prT1RJeSJ9
+        # On a retiré le livenessProbe qui faisait crasher le pod
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            memory: 128Mi
