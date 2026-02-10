@@ -1,27 +1,110 @@
 ---
+- name: Prepare Nodes (Common)
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install Dependencies
+      package:
+        name: 
+          - curl
+          - ca-certificates
+        state: present
+
 - name: Installer K3s Master
   hosts: k3s_master
   become: yes
+  vars:
+    # Pin the version!
+    k3s_version: "v1.28.4+k3s2" 
   tasks:
-    - name: Installation Script
-      shell: curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode 644 --node-name {{ inventory_hostname }} --tls-san {{ ansible_host }} --disable traefik --disable servicelb
+    - name: Installation Master
+      shell: >
+        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION={{ k3s_version }} sh -s - server 
+        --write-kubeconfig-mode 644 
+        --node-name {{ inventory_hostname }} 
+        --tls-san {{ ansible_host }} 
+        disable traefik 
+        disable servicelb
       args:
         creates: /usr/local/bin/k3s
 
-    - name: Lire le token
+    - name: Wait for node-token
+      wait_for:
+        path: /var/lib/rancher/k3s/server/node-token
+
+    - name: Read node-token
       slurp:
         src: /var/lib/rancher/k3s/server/node-token
       register: node_token_b64
 
-    - name: Stocker le token
+    # Save facts so they are available to other plays in this run
+    - name: Register Global Token
       set_fact:
-        join_token: "{{ node_token_b64.content | b64decode | trim }}"
+        global_join_token: "{{ node_token_b64.content | b64decode | trim }}"
+        global_master_ip: "{{ ansible_host }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+    - name: Get Kubeconfig for local use
+      fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: ./k3s_kubeconfig
+        flat: yes
+    - name: Récupérer le kubeconfig depuis le master
+      fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: /tmp/k3s.yaml
+        flat: yes
+
+    - name: Installer le kubeconfig dans ~/.kube/config
+      copy:
+        src: /tmp/k3s.yaml
+        dest: ~/.kube/config
+        mode: '0600'
+      delegate_to: localhost
+      become: no
+
+    - name: Remplacer 127.0.0.1 par l'IP du Master dans la config
+      replace:
+        path: ~/.kube/config
+        regexp: '127\.0\.0\.1'
+        replace: "{{ ansible_host }}"
+      delegate_to: localhost
+      become: no
+
+    - name: Créer le point de montage
+      file:
+        path: /mnt/media
+        state: directory
+        mode: '0755'
+    
+    - name: Monter le disque dur
+      mount:
+        path: /mnt/media
+        src: /dev/sdb1
+        fstype: ext4
+        state: mounted
+
+    - name: Donner les permissions (pour éviter les problèmes 'Permission Denied')
+      file:
+        path: /mnt/media_hdd
+        state: directory
+        recurse: yes
+        owner: 1000 
+        group: 1000
+        mode: '0775'
 
 - name: Installer K3s Workers
   hosts: k3s_workers
   become: yes
+  vars:
+    k3s_version: "v1.28.4+k3s2"
   tasks:
-    - name: Rejoindre le cluster
-      shell: "curl -sfL https://get.k3s.io | K3S_URL=https://{{ hostvars['k3s-master']['ansible_host'] }}:6443 K3S_TOKEN={{ hostvars['k3s-master']['join_token'] }} sh -s - agent --node-name {{ inventory_hostname }}"
+    - name: Join Cluster
+      shell: >
+        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION={{ k3s_version }} 
+        K3S_URL=https://{{ hostvars['localhost']['global_master_ip'] }}:6443 
+        K3S_TOKEN={{ hostvars['localhost']['global_join_token'] }} 
+        sh -s - agent --node-name {{ inventory_hostname }}
       args:
         creates: /usr/local/bin/k3s-agent

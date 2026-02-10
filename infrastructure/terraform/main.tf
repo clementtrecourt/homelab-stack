@@ -106,6 +106,7 @@ resource "proxmox_vm_qemu" "k3s_cluster" {
     type    = "cloudinit"
     storage = "local-lvm"
   }
+
   # 4. Ordre de boot
   boot = "order=virtio0"
 
@@ -132,7 +133,11 @@ resource "proxmox_vm_qemu" "k3s_cluster" {
   vga {
     type = "std"
   }
-
+  usb {
+    id   = 0
+    host = "04e8:61b6" # L'ID du port USB physique sur l'hôte
+    usb3 = true
+  }
   network {
     id     = 0
     model  = "virtio"
