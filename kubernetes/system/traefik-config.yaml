@@ -3,6 +3,12 @@ kind: HelmChartConfig
 metadata:
   name: traefik
   namespace: kube-system
+resources:
+  limits:
+    memory: 256Mi
+  requests:
+    cpu: 10m
+    memory: 128Mi
 spec:
   valuesContent: |-
     global:
