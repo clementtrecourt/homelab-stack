@@ -2,10 +2,10 @@ apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
   name: require-requests-limits
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
+
 spec:
   validationFailureAction: Audit
+  background: true
   rules:
   - name: check-memory-limits
     match:
@@ -14,6 +14,7 @@ spec:
           kinds:
           - Pod
     validate:
+      message: "Resource limits are required."
       pattern:
         spec:
           containers:
