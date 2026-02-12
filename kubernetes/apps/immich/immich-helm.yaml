@@ -10,20 +10,51 @@ spec:
     chart: immich
     targetRevision: 0.9.0 # Vérifie la version
     helm:
+      helm:
       values: |
+        # Config DB
         postgresql:
-          enabled: false # On utilise CNPG
+          enabled: false
           host: immich-postgres-rw.immich.svc
+          port: 5432
           username: immich
           database: immich
           existingSecret: immich-postgres-user
           existingSecretPasswordKey: password
+        
+        # Config Redis (intégré au chart)
         redis:
-          enabled: true # On laisse le chart gérer Redis pour simplifier, ou tu le sors aussi
+          enabled: true
+        
+        # --- AJOUT DE L'ACCÈS WEB ---
+        ingress:
+          main:
+            enabled: true
+            ingressClassName: traefik
+            annotations:
+              traefik.ingress.kubernetes.io/router.entrypoints: web
+            hosts:
+              - host: immich.clem-ops.org
+                paths:
+                  - path: /
+                    pathType: Prefix
+
+        # --- MACHINE LEARNING (CONSEIL) ---
+        # Si ton serveur rame, limite le ML
+        immich:
+          machineLearning:
+            resources:
+              requests:
+                cpu: 500m
+                memory: 1Gi
+              limits:
+                memory: 2Gi
+
+        # Persistence
         persistence:
           library:
             enabled: true
-            size: 500Gi
+            size: 50Gi # On commence petit pour tester
             storageClass: local-path
   destination:
     server: https://kubernetes.default.svc
