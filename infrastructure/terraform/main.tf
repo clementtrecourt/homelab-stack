@@ -43,7 +43,6 @@ resource "proxmox_lxc" "ct_group" {
   unprivileged = true
   start        = true
   onboot       = true
-
   rootfs {
     storage = "local-lvm"
     size    = each.value.rootfs_size
@@ -51,14 +50,14 @@ resource "proxmox_lxc" "ct_group" {
 
   password        = var.root_password
   ssh_public_keys = var.ssh_public_key
-
+  
   network {
     name   = "eth0"
     bridge = "vmbr0"
     gw     = "192.168.1.254"
     ip     = each.value.ip
   }
-
+  nameserver = "8.8.8.8"
   features {
     nesting = true
   }
@@ -84,11 +83,9 @@ resource "proxmox_vm_qemu" "k3s_cluster" {
   machine = "q35"
   agent   = 1 # Force l'agent à 1 (il était à 0 dans ton config)
 
-  # 2. IMPORTANT : Taille du disque >= Taille du Template (32G)
-  # Sinon Terraform détache le disque !
   disk {
     slot    = "virtio0"
-    size    = "32G" # <--- ICI : Change 20G en 32G
+    size    = "32G" 
     type    = "disk"
     storage = "local-lvm"
     discard = true
@@ -132,11 +129,6 @@ resource "proxmox_vm_qemu" "k3s_cluster" {
   scsihw = "virtio-scsi-pci"
   vga {
     type = "std"
-  }
-  usb {
-    id   = 0
-    host = "04e8:61b6" # L'ID du port USB physique sur l'hôte
-    usb3 = true
   }
   network {
     id     = 0

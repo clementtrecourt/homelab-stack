@@ -8,8 +8,9 @@
         name: 
           - curl
           - ca-certificates
+          - nfs-common
         state: present
-
+################CRRER mkdir /mnt/data sur les node
 - name: Installer K3s Master
   hosts: k3s_master
   become: yes
