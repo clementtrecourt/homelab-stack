@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: immich
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://immich-app.github.io/immich-charts
+    chart: immich
+    targetRevision: 0.9.0 # Vérifie la version
+    helm:
+      values: |
+        postgresql:
+          enabled: false # On utilise CNPG
+          host: immich-postgres-rw.immich.svc
+          username: immich
+          database: immich
+          existingSecret: immich-postgres-user
+          existingSecretPasswordKey: password
+        redis:
+          enabled: true # On laisse le chart gérer Redis pour simplifier, ou tu le sors aussi
+        persistence:
+          library:
+            enabled: true
+            size: 500Gi
+            storageClass: local-path
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: immich
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
