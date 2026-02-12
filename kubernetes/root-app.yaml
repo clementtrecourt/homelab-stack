@@ -7,19 +7,13 @@ spec:
   project: default
   source:
     repoURL: 'https://github.com/clementtrecourt/homelab-stack.git'
-    
     targetRevision: feat/k3s-migration
-    
     path: kubernetes/system
-    
-
     directory:
       recurse: true
-
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: kube-system
-
+    namespace: argocd # <--- MODIFIE CECI EN 'argocd'
   syncPolicy:
     automated:
       prune: true      
