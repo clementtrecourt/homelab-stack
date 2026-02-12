@@ -1,0 +1,58 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://victoriametrics.github.io/helm-charts/
+    chart: victoria-metrics-k8s-stack
+    targetRevision: 0.32.0 
+    helm:
+      values: |
+        # CONFIGURATION ULTRA-LIGHT POUR TES 4GO DE RAM
+        vmsingle:
+          spec:
+            resources:
+              limits:
+                memory: 256Mi # On réduit encore
+            storage:
+              storageClassName: local-path
+              accessModes: ["ReadWriteOnce"]
+              resources:
+                requests:
+                  storage: 5Gi
+        vmagent:
+          enabled: true
+          spec:
+            resources:
+              limits:
+                memory: 128Mi
+        grafana:
+          enabled: true
+          resources:
+            limits:
+              memory: 256Mi
+          ingress:
+            enabled: true
+            ingressClassName: traefik
+            annotations:
+              traefik.ingress.kubernetes.io/router.entrypoints: web
+            hosts:
+              - grafana.clem-ops.org
+    
+        kube-state-metrics:
+          enabled: true
+        prometheus-node-exporter:
+          enabled: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true 
