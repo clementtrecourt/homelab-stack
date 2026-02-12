@@ -1,0 +1,22 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: victoria-metrics
+  namespace: kube-system
+spec:
+  chart: victoria-metrics-k8s-stack
+  repo: https://victoriametrics.github.io/helm-charts/
+  targetNamespace: monitoring
+  createNamespace: true
+  valuesContent: |-
+    prometheus-node-exporter:
+      enabled: true
+    grafana:
+      enabled: true
+      ingress:
+        enabled: true
+        ingressClassName: traefik
+        annotations:
+          traefik.ingress.kubernetes.io/router.entrypoints: web
+        hosts:
+          - grafana.clem-ops.org
