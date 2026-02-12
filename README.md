@@ -1,385 +1,784 @@
-# 🏰 Infrastructure Homelab de Niveau Entreprise
+# "Sealed Secrets" for Kubernetes
 
-> **Infrastructure as Code (IaC) · Pipelines CI/CD · Observabilité Complète sur Proxmox**
+[![](https://img.shields.io/badge/install-docs-brightgreen.svg)](#Installation)
+[![](https://img.shields.io/github/release/bitnami-labs/sealed-secrets.svg)](https://github.com/bitnami-labs/sealed-secrets/releases/latest)
+[![](https://img.shields.io/homebrew/v/kubeseal)](https://formulae.brew.sh/formula/kubeseal)
+[![Build Status](https://github.com/bitnami-labs/sealed-secrets/actions/workflows/ci.yml/badge.svg)](https://github.com/bitnami-labs/sealed-secrets/actions/workflows/ci.yml)
+[![](https://img.shields.io/github/v/release/bitnami-labs/sealed-secrets?include_prereleases&label=helm&sort=semver)](https://github.com/bitnami-labs/sealed-secrets/releases)
+[![Download Status](https://img.shields.io/docker/pulls/bitnami/sealed-secrets-controller.svg)](https://hub.docker.com/r/bitnami/sealed-secrets-controller)
+[![Go Report Card](https://goreportcard.com/badge/github.com/bitnami-labs/sealed-secrets)](https://goreportcard.com/report/github.com/bitnami-labs/sealed-secrets)
+![Downloads](https://img.shields.io/github/downloads/bitnami-labs/sealed-secrets/total.svg)
 
-[![Terraform](https://img.shields.io/badge/Terraform-1.6+-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)](https://www.terraform.io/)
-[![Ansible](https://img.shields.io/badge/Ansible-2.15+-EE0000?style=for-the-badge&logo=ansible&logoColor=white)](https://www.ansible.com/)
-[![Jenkins](https://img.shields.io/badge/Jenkins-CI%2FCD-D24939?style=for-the-badge&logo=jenkins&logoColor=white)](https://www.jenkins.io/)
-[![Docker](https://img.shields.io/badge/Docker-24.0+-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![Traefik](https://img.shields.io/badge/Traefik-v3-24A1C1?style=for-the-badge&logo=traefik&logoColor=white)](https://traefik.io/)
-[![Grafana](https://img.shields.io/badge/Grafana-10.0+-F46800?style=for-the-badge&logo=grafana&logoColor=white)](https://grafana.com/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
+**Problem:** "I can manage all my K8s config in git, except Secrets."
 
----
+**Solution:** Encrypt your Secret into a SealedSecret, which *is* safe
+to store - even inside a public repository. The SealedSecret can be
+decrypted only by the controller running in the target cluster and
+nobody else (not even the original author) is able to obtain the
+original Secret from the SealedSecret.
 
-## 📖 Présentation
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-Ce projet démontre une **infrastructure de niveau production** fonctionnant dans un environnement homelab. Il réplique les standards et contraintes d'entreprise en utilisant des pratiques et outils DevOps modernes.
+- [Overview](#overview)
+  - [SealedSecrets as templates for secrets](#sealedsecrets-as-templates-for-secrets)
+  - [Public key / Certificate](#public-key--certificate)
+  - [Scopes](#scopes)
+- [Installation](#installation)
+  - [Controller](#controller)
+    - [Kustomize](#kustomize)
+    - [Helm Chart](#helm-chart)
+  - [Kubeseal](#kubeseal)
+    - [Homebrew](#homebrew)
+    - [MacPorts](#macports)
+    - [Linux](#linux)
+    - [Installation from source](#installation-from-source)
+- [Upgrade](#upgrade)
+- [Usage](#usage)
+  - [Managing existing secrets](#managing-existing-secrets)
+  - [Update existing secrets](#update-existing-secrets)
+  - [Raw mode (experimental)](#raw-mode-experimental)
+  - [Validate a Sealed Secret](#validate-a-sealed-secret)
+- [Secret Rotation](#secret-rotation)
+  - [Sealing key renewal](#sealing-key-renewal)
+  - [User secret rotation](#user-secret-rotation)
+  - [Early key renewal](#early-key-renewal)
+  - [Common misconceptions about key renewal](#common-misconceptions-about-key-renewal)
+  - [Manual key management (advanced)](#manual-key-management-advanced)
+  - [Re-encryption (advanced)](#re-encryption-advanced)
+- [Details (advanced)](#details-advanced)
+  - [Crypto](#crypto)
+- [Developing](#developing)
+- [FAQ](#faq)
+  - [Will you still be able to decrypt if you no longer have access to your cluster?](#will-you-still-be-able-to-decrypt-if-you-no-longer-have-access-to-your-cluster)
+  - [How can I do a backup of my SealedSecrets?](#how-can-i-do-a-backup-of-my-sealedsecrets)
+  - [Can I decrypt my secrets offline with a backup key?](#can-i-decrypt-my-secrets-offline-with-a-backup-key)
+  - [What flags are available for kubeseal?](#what-flags-are-available-for-kubeseal)
+  - [How do I update parts of JSON/YAML/TOML/.. file encrypted with sealed secrets?](#how-do-i-update-parts-of-jsonyamltoml-file-encrypted-with-sealed-secrets)
+  - [Can I bring my own (pre-generated) certificates?](#can-i-bring-my-own-pre-generated-certificates)
+  - [How to use kubeseal if the controller is not running within the `kube-system` namespace?](#how-to-use-kubeseal-if-the-controller-is-not-running-within-the-kube-system-namespace)
+  - [How to verify the images?](#how-to-verify-the-images)
+  - [How to use one controller for a subset of namespaces](#How-to-use-one-controller-for-a-subset-of-namespaces)
 
-### 🎯 Principes Fondamentaux
+- [Community](#community)
+  - [Related projects](#related-projects)
 
-**"Everything as Code"** — Zéro configuration manuelle des serveurs. Si un serveur tombe, il peut être automatiquement redéployé depuis le code.
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-| Pilier | Implémentation |
-|--------|---------------|
-| **Immutabilité** | Infrastructure définie de manière déclarative avec Terraform |
-| **Automatisation** | Gestion de configuration via playbooks Ansible |
-| **Livraison Continue** | Déploiements zéro-clic via pipelines Jenkins |
-| **Observabilité** | Stack de monitoring complète (Logs + Métriques + Traces) |
-| **Sécurité** | Isolation réseau, conteneurs non-privilégiés, gestion des secrets |
+## Overview
 
----
+Sealed Secrets is composed of two parts:
 
-## 🏗️ Vue d'Ensemble de l'Architecture
+- A cluster-side controller / operator
+- A client-side utility: `kubeseal`
 
-L'infrastructure fonctionne sur **Proxmox VE** avec un nœud **Bastion** dédié orchestrant tous les déploiements. Aucun accès direct aux nœuds de production n'est nécessaire.
+The `kubeseal` utility uses asymmetric crypto to encrypt secrets that only the controller can decrypt.
 
-```mermaid
-%%{init: {
-  'theme': 'base', 
-  'themeVariables': { 
-    'primaryColor': '#161b22', 
-    'primaryTextColor': '#e6edf3', 
-    'primaryBorderColor': '#30363d', 
-    'lineColor': '#7d8590', 
-    'secondaryColor': '#0d1117', 
-    'tertiaryColor': '#21262d', 
-    'fontFamily': '-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif'
-  }
-}}%%
+These encrypted secrets are encoded in a `SealedSecret` resource, which you can see as a recipe for creating
+a secret. Here is how it looks:
 
-graph TB
-    Dev["<b>👨‍💻 Développeur</b><br/><i>Code source</i>"]
-    GitHub["<b>📦 GitHub</b><br/><i>Dépôt Git</i>"]
-    Jenkins["<b>⚙️ Jenkins</b><br/><i>Orchestrateur CI/CD</i>"]
-    
-    subgraph Proxmox["<b>🖥️ Hyperviseur Proxmox</b>"]
-        direction TB
-        
-        Registry["<b>🐳 Registre Privé</b><br/><i>Images Docker</i>"]
-        Bastion["<b>🛡️ Bastion</b><br/><i>IaC & Configuration</i>"]
-        ProxmoxAPI(("<b>API Proxmox</b><br/><i>Provisioning</i>"))
-        
-        subgraph Production["<b>📦 Zone Production</b><br/><i>LXC Non-Privilégiés</i>"]
-            direction LR
-            Traefik["<b>🌐 Traefik</b><br/><i>Reverse Proxy</i><br/><i>SSL/TLS</i>"]
-            Apps["<b>🚀 Applications</b><br/><i>Docker Compose</i><br/><i>Microservices</i>"]
-            Security["<b>🔐 Sécurité</b><br/><i>AdGuard</i><br/><i>Authentik</i>"]
-            Monitoring["<b>📊 Observabilité</b><br/><i>Prometheus</i><br/><i>Grafana</i><br/><i>Loki</i>"]
-        end
-    end
-
-    Dev -->|"<b>git push</b>"| GitHub
-    GitHub -->|"<b>webhook</b>"| Jenkins
-    Jenkins -->|"<b>build & push</b>"| Registry
-    Jenkins -->|"<b>Trigger</b>"| Bastion
-    
-    Bastion -->|"<b>Terraform</b><br/>provision infra"| ProxmoxAPI
-    Bastion -->|"<b>Ansible</b><br/>config & deploy"| Production
-    ProxmoxAPI -.->|"<b>Créer VMs/LXC</b>"| Production
-    
-    Registry -.->|"<b>pull images</b>"| Apps
-    
-    Traefik -->|"<b>Routing</b>"| Apps
-    Traefik -->|"<b>Auth</b>"| Security
-    
-    Apps -.->|"<b>Métriques</b>"| Monitoring
-    Traefik -.->|"<b>Logs</b>"| Monitoring
-    Security -.->|"<b>Alertes</b>"| Monitoring
-
-    classDef devStyle fill:#21262d,stroke:#8b949e,stroke-width:2px,color:#e6edf3
-    classDef githubStyle fill:#010409,stroke:#f0f6fc,stroke-width:2px,color:#ffffff
-    classDef jenkinsStyle fill:#21262d,stroke:#d29922,stroke-width:2px,color:#e6edf3
-    classDef bastionStyle fill:#1f2428,stroke:#58a6ff,stroke-width:2px,color:#e6edf3
-    classDef registryStyle fill:#161b22,stroke:#388bfd,stroke-width:2px,color:#e6edf3
-    classDef apiStyle fill:#21262d,stroke:#e3b341,stroke-width:2px,color:#e6edf3
-    classDef proxmoxStyle fill:#161b22,stroke:#30363d,stroke-width:2px,color:#e6edf3
-    classDef prodStyle fill:#0d1117,stroke:#30363d,stroke-width:2px,color:#e6edf3
-    classDef traefikStyle fill:#1f2428,stroke:#bc8cff,stroke-width:2px,color:#e6edf3
-    classDef appsStyle fill:#1f2428,stroke:#3fb950,stroke-width:2px,color:#e6edf3
-    classDef securityStyle fill:#1f2428,stroke:#f85149,stroke-width:2px,color:#e6edf3
-    classDef monitoringStyle fill:#21262d,stroke:#7d8590,stroke-width:2px,color:#e6edf3
-
-    class Dev devStyle
-    class GitHub githubStyle
-    class Jenkins jenkinsStyle
-    class Bastion bastionStyle
-    class Registry registryStyle
-    class ProxmoxAPI apiStyle
-    class Proxmox proxmoxStyle
-    class Production prodStyle
-    class Traefik traefikStyle
-    class Apps appsStyle
-    class Security securityStyle
-    class Monitoring monitoringStyle
+```yaml
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: mysecret
+  namespace: mynamespace
+spec:
+  encryptedData:
+    foo: AgBy3i4OJSWK+PiTySYZZA9rO43cGDEq.....
 ```
 
----
+Once unsealed this will produce a secret equivalent to this:
 
-## 🛠️ Stack Technologique
-
-### Couche Infrastructure
-
-| Composant | Technologie | Objectif |
-|-----------|-----------|---------|
-| **Provisioning** | Terraform | Gestion du cycle de vie des conteneurs LXC (état stocké sur Bastion) |
-| **Configuration** | Ansible | Hardening OS, installation Docker, gestion utilisateurs, rotation logs |
-| **Hyperviseur** | Proxmox VE | Hyperviseur Type-1 pour orchestration LXC et VM |
-
-### Couche Application
-
-| Composant | Technologie | Objectif |
-|-----------|-----------|---------|
-| **CI/CD** | Jenkins | Pipelines déclaratives (DSL Groovy) pour infra et apps |
-| **Orchestration** | Docker Compose | Gestion d'applications multi-conteneurs |
-| **Réseau** | Traefik v3 | Reverse proxy dynamique avec SSL/TLS automatique |
-| **Registre** | Docker Registry | Stockage privé d'images avec authentification |
-
-### Sécurité & Monitoring
-
-| Composant | Technologie | Objectif |
-|-----------|-----------|---------|
-| **Identité** | Authentik | Provider d'identité centralisé (SSO), MFA et gestion des accès |
-| **VPN** | Tailscale | Réseau mesh sécurisé pour l'administration |
-| **Secrets** | Ansible Vault | Gestion chiffrée des identifiants |
-| **Métriques** | Prometheus + Node Exporter | Collecte de métriques time-series |
-| **Visualisation** | Grafana | Dashboards unifiés pour la santé de l'infrastructure |
-| **Logs** | Loki (prévu) | Agrégation centralisée des logs |
-
----
-
-## 🚀 Architecture des Pipelines CI/CD
-
-Le projet implémente des **pipelines séparés** pour les cycles de vie infrastructure et applications.
-
-### 🔵 Pipeline Application (Intégration Continue)
-
-Déclenché lors de modifications du code applicatif (ex: Budget App).
-
-```
-┌─────────────┐     ┌──────────┐     ┌─────────┐     ┌──────────────┐
-│  Git Push   │ ──> │  Build   │ ──> │  Tests  │ ──> │ Push vers    │
-│             │     │  Docker  │     │  Units  │     │ Registre     │
-└─────────────┘     └──────────┘     └─────────┘     └──────────────┘
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+  namespace: mynamespace
+data:
+  foo: YmFy  # <- base64 encoded "bar"
 ```
 
-**Étapes :**
-1. **Build** — Création d'image Docker multi-stage
-2. **Test** — Tests unitaires + validation linting
-3. **Push** — Tag et publication de l'image vers le registre privé
+This normal [kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/) will appear in the cluster
+after a few seconds you can use it as you would use any secret that you would have created directly (e.g. reference it from a `Pod`).
 
-### 🟢 Pipeline Infrastructure (Déploiement Continu)
+Jump to the [Installation](#installation) section to get up and running.
 
-Déclenché lors de modifications Terraform/Ansible.
+The [Usage](#usage) section explores in more detail how you craft `SealedSecret` resources.
 
-```
-┌─────────────┐     ┌──────────────┐     ┌────────────────┐     ┌──────────┐
-│ Changements │ ──> │ Terraform    │ ──> │ Configuration  │ ──> │ Restart  │
-│ Terraform   │     │ Plan/Apply   │     │ Ansible        │     │ Services │
-└─────────────┘     └──────────────┘     └────────────────┘     └──────────┘
-```
+### SealedSecrets as templates for secrets
 
-**Étapes :**
-1. **Checkout** — Récupération du code infrastructure sur Bastion
-2. **Plan/Apply** — Mise à jour ressources compute et topologie réseau
-3. **Configure** — Exécution playbooks Ansible pour déploiement services
-4. **Validate** — Health checks et tests de fumée
+The previous example only focused on the encrypted secret items themselves, but the relationship between a `SealedSecret` custom resource and the `Secret` it unseals into is similar in many ways (but not in all of them) to the familiar `Deployment` vs `Pod`.
 
----
+In particular, the annotations and labels of a `SealedSecret` resource are not the same as the annotations of the `Secret` that gets generated out of it.
 
-## 📊 Stack d'Observabilité
+To capture this distinction, the `SealedSecret` object has a `template` section which encodes all the fields you want the controller to put in the unsealed `Secret`.
 
-### Architecture Monitoring
+This includes metadata such as labels or annotations, but also things like the `type` of the secret.
 
-```
-┌──────────────────────────────────────────────────────┐
-│               Dashboards Grafana                     │
-│           (Visualisation Unifiée)                    │
-└─────────────────┬────────────────────────────────────┘
-                  │
-        ┌─────────┴─────────┐
-        ▼                   ▼
-┌───────────────┐   ┌───────────────┐
-│  Prometheus   │   │   InfluxDB    │
-│  (Métriques)  │   │ (Time-series) │
-└───────┬───────┘   └───────┬───────┘
-        │                   │
-        └─────────┬─────────┘
-                  ▼
-        ┌──────────────────┐
-        │  Node Exporter   │
-        │    Telegraf      │
-        │ (Collecte Data)  │
-        └──────────────────┘
+```yaml
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: mysecret
+  namespace: mynamespace
+  annotations:
+    "kubectl.kubernetes.io/last-applied-configuration": ....
+spec:
+  encryptedData:
+    .dockerconfigjson: AgBy3i4OJSWK+PiTySYZZA9rO43cGDEq.....
+  template:
+    type: kubernetes.io/dockerconfigjson
+    # this is an example of labels and annotations that will be added to the output secret
+    metadata:
+      labels:
+        "jenkins.io/credentials-type": usernamePassword
+      annotations:
+        "jenkins.io/credentials-description": credentials from Kubernetes
 ```
 
-### Métriques Clés Surveillées
+The controller would unseal that into something like:
 
-- 📈 **Système** : CPU, RAM, I/O disque, débit réseau
-- 🐳 **Conteneurs** : Utilisation ressources Docker, compteurs de restart
-- 🌐 **Réseau** : Taux de requêtes Traefik, temps de réponse, taux d'erreur
-- 💾 **Stockage** : Utilisation disque LXC, pools de stockage Proxmox
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+  namespace: mynamespace
+  labels:
+    "jenkins.io/credentials-type": usernamePassword
+  annotations:
+    "jenkins.io/credentials-description": credentials from Kubernetes
+  ownerReferences:
+  - apiVersion: bitnami.com/v1alpha1
+    controller: true
+    kind: SealedSecret
+    name: mysecret
+    uid: 5caff6a0-c9ac-11e9-881e-42010aac003e
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: ewogICJjcmVk...
+```
 
-> **Note** : Ajoutez ici vos captures d'écran de dashboards Grafana pour présenter les données de monitoring réelles.
+As you can see, the generated `Secret` resource is a "dependent object" of the `SealedSecret` and as such
+it will be updated and deleted whenever the `SealedSecret` object gets updated or deleted.
 
----
+### Public key / Certificate
 
-## 🔐 Implémentation Sécurité
+The key certificate (public key portion) is used for sealing secrets,
+and needs to be available wherever `kubeseal` is going to be
+used. The certificate is not secret information, although you need to
+ensure you are using the correct one.
 
-La sécurité est intégrée dès la phase de conception (**Security by Design**).
+`kubeseal` will fetch the certificate from the controller at runtime
+(requires secure access to the Kubernetes API server), which is
+convenient for interactive use, but it's known to be brittle when users
+have clusters with special configurations such as [private GKE clusters](docs/GKE.md#private-gke-clusters) that have
+firewalls between control plane and nodes.
 
-### Stratégie de Défense en Profondeur
+An alternative workflow
+is to store the certificate somewhere (e.g. local disk) with
+`kubeseal --fetch-cert >mycert.pem`,
+and use it offline with `kubeseal --cert mycert.pem`.
+The certificate is also printed to the controller log on startup.
 
-| Couche | Implémentation |
-|-------|---------------|
-| **Authentification Unifiée** | Portail SSO unique (Authentik) protégeant tous les services internes |
-| **Moindre Privilège** | Tous les conteneurs LXC fonctionnent en mode non-privilégié (pas de root sur l'hôte) |
-| **Gestion Secrets** | Zéro identifiant en clair — chiffrement Ansible Vault |
-| **Segmentation Réseau** | Zone production isolée du réseau de management |
-| **Surface d'Attaque** | Seul le port 443 (HTTPS) exposé via Traefik |
-| **Hardening SSH** | Authentification par clés uniquement, accès Bastion seul |
-| **Accès Admin** | VPN mesh Tailscale — pas de port SSH 22 public |
-| **Gestion Certificats** | Let's Encrypt automatisé via Traefik |
-
----
-
-## 📦 Inventaire Infrastructure
-
-| ID | Hostname | IP | vCPU | RAM | Rôle |
-|----|----------|-------|------|-----|------|
-| 100 | `bastion-admin` | 192.168.1.20 | 2 | 4GB | Control Plane · Terraform · Ansible |
-| 200 | `traefik` | 192.168.1.30 | 2 | 2GB | Reverse Proxy · Terminaison SSL |
-| 201 | `servarr` | 192.168.1.31 | 4 | 8GB | Serveur Applications · Docker Compose |
-| 203 | `jenkins` | 192.168.1.33 | 2 | 4GB | Contrôleur CI/CD · Registre Docker |
-| 204 | `monitoring` | 192.168.1.34 | 2 | 4GB | Prometheus · Grafana · Alerting |
-| 205 | `identity` | 192.168.1.35 | 2 | 4GB | Authentik · SSO · Provider OIDC/LDAP |
-
----
-
-## 🚀 Guide de Démarrage Rapide
-
-### Prérequis
-
-- Proxmox VE 8.0+ installé sur bare metal
-- Git et clé SSH configurés
-- Ansible 2.15+ sur votre machine locale
-
-### Étape 1 : Bootstrap du Nœud Bastion
-
-Depuis votre **poste de travail local** :
+Since v0.9.x certificates get automatically renewed every 30 days. It's good practice that you and your team
+update your offline certificate periodically. To help you with that, since v0.9.2 `kubeseal` accepts URLs too. You can set up your internal automation to publish certificates somewhere you trust.
 
 ```bash
-git clone https://github.com/votre-username/homelab-infrastructure.git
-cd homelab-infrastructure/terraform/bastion
-
-terraform init
-terraform apply -auto-approve
+kubeseal --cert https://your.intranet.company.com/sealed-secrets/your-cluster.cert
 ```
 
-### Étape 2 : Configuration Initiale
+It also recognizes the `SEALED_SECRETS_CERT` env var. (pro-tip: see also [direnv](https://github.com/direnv/direnv)).
 
-Connexion au Bastion et exécution du setup initial :
+> **NOTE**: we are working on providing key management mechanisms that offload the encryption to HSM based modules or managed cloud crypto solutions such as KMS.
+
+### Scopes
+
+SealedSecrets are from the POV of an end user a "write only" device.
+
+The idea is that the SealedSecret can be decrypted only by the controller running in the target cluster and
+nobody else (not even the original author) is able to obtain the original Secret from the SealedSecret.
+
+The user may or may not have direct access to the target cluster.
+More specifically, the user might or might not have access to the Secret unsealed by the controller.
+
+There are many ways to configure RBAC on k8s, but it's quite common to forbid low-privilege users
+from reading Secrets. It's also common to give users one or more namespaces where they have higher privileges,
+which would allow them to create and read secrets (and/or create deployments that can reference those secrets).
+
+Encrypted `SealedSecret` resources are designed to be safe to be looked at without gaining any knowledge about the secrets it conceals. This implies that we cannot allow users to read a SealedSecret meant for a namespace they wouldn't have access to
+and just push a copy of it in a namespace where they can read secrets from.
+
+Sealed-secrets thus behaves *as if* each namespace had its own independent encryption key and thus once you
+seal a secret for a namespace, it cannot be moved in another namespace and decrypted there.
+
+We don't technically use an independent private key for each namespace, but instead we *include* the namespace name
+during the encryption process, effectively achieving the same result.
+
+Furthermore, namespaces are not the only level at which RBAC configurations can decide who can see which secret. In fact, it's possible that users can access a secret called `foo` in a given namespace but not any other secret in the same namespace. We cannot thus by default let users freely rename `SealedSecret` resources otherwise a malicious user would be able to decrypt any SealedSecret for that namespace by just renaming it to overwrite the one secret user does have access to. We use the same mechanism used to include the namespace in the encryption key to also include the secret name.
+
+That said, there are many scenarios where you might not care about this level of protection. For example, the only people who have access to your clusters are either admins or they cannot read any `Secret` resource at all. You might have a use case for moving a sealed secret to other namespaces (e.g. you might not know the namespace name upfront), or you might not know the name of the secret (e.g. it could contain a unique suffix based on the hash of the contents etc).
+
+These are the possible scopes:
+
+- `strict` (default): the secret must be sealed with exactly the same *name* and *namespace*. These attributes become *part of the encrypted data* and thus changing name and/or namespace would lead to "decryption error".
+- `namespace-wide`: you can freely *rename* the sealed secret within a given namespace.
+- `cluster-wide`: the secret can be unsealed in *any* namespace and can be given *any* name.
+
+In contrast to the restrictions of *name* and *namespace*, secret *items* (i.e. JSON object keys like `spec.encryptedData.my-key`) can be renamed at will without losing the ability to decrypt the sealed secret.
+
+The scope is selected with the `--scope` flag:
 
 ```bash
-ansible-playbook -i inventory/bastion.yml playbooks/setup_bastion.yml --ask-vault-pass
+kubeseal --scope cluster-wide <secret.yaml >sealed-secret.json
 ```
 
-### Étape 3 : Déploiement de l'Infrastructure Complète
+It's also possible to request a scope via annotations in the input secret you pass to `kubeseal`:
 
-Exécution du script de déploiement maître :
+- `sealedsecrets.bitnami.com/namespace-wide: "true"` -> for `namespace-wide`
+- `sealedsecrets.bitnami.com/cluster-wide: "true"` -> for `cluster-wide`
+
+The lack of any of such annotations means `strict` mode. If both are set, `cluster-wide` takes precedence.
+
+> NOTE: Next release will consolidate this into a single `sealedsecrets.bitnami.com/scope` annotation.
+
+## Installation
+
+See https://github.com/bitnami-labs/sealed-secrets/releases for the latest release and detailed installation instructions.
+
+Cloud platform specific notes and instructions:
+
+- [GKE](docs/GKE.md)
+
+### Controller
+
+Once you deploy the manifest it will create the `SealedSecret` resource
+and install the controller into `kube-system` namespace, create a service
+account and necessary RBAC roles.
+
+After a few moments, the controller will start, generate a key pair,
+and be ready for operation. If it does not, check the controller logs.
+
+#### Kustomize
+
+The official controller manifest installation mechanism is just a YAML file.
+
+In some cases you might need to apply your own customizations, like set a custom namespace or set some env variables.
+
+`kubectl` has native support for that, see [kustomize](https://kustomize.io/).
+
+#### Helm Chart
+
+The Sealed Secrets helm chart is now officially supported and hosted in this GitHub repo.
 
 ```bash
-ssh root@bastion.votredomaine.com
-cd /opt/homelab
-./scripts/deploy_infrastructure.sh
+helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
 ```
 
-### Étape 4 : Vérification du Déploiement
+> NOTE: The versioning scheme of the helm chart differs from the versioning scheme of the sealed secrets project itself.
 
-Vérification de la santé des services :
+Originally the helm chart was maintained by the community and the first version adopted a major version of 1 while the
+sealed secrets project itself is still at major 0.
+This is ok because the version of the helm chart itself is not meant to be necessarily the version of the app itself.
+However this is confusing, so our current versioning rule is:
+
+1. The `SealedSecret` controller version scheme: 0.X.Y
+2. The helm chart version scheme: 1.X.Y-rZ
+
+There can be thus multiple revisions of the helm chart, with fixes that apply only to the helm chart without
+affecting the static YAML manifests or the controller image itself.
+
+> NOTE: The helm chart readme still contains a deprecation notice, but it no longer reflects reality and will be removed upon the next release.
+
+> NOTE: The helm chart by default installs the controller with the name `sealed-secrets`, while the `kubeseal` command line interface (CLI) tries to access the controller with the name `sealed-secrets-controller`. You can explicitly pass `--controller-name` to the CLI:
 
 ```bash
-ansible all -i inventory/production.yml -m ping
-docker ps --format "table {{.Names}}\t{{.Status}}"
+kubeseal --controller-name sealed-secrets <args>
 ```
 
-Accès au dashboard Grafana : `https://monitoring.votredomaine.com`
+Alternatively, you can set `fullnameOverride` when installing the chart to override the name. Note also that `kubeseal` assumes that the controller is installed within the `kube-system` namespace by default. So if you want to use the `kubeseal` CLI without having to pass the expected controller name and namespace you should install the Helm Chart like this:
 
----
-
-## 📁 Structure du Dépôt
-
-```
-homelab-infrastructure/
-├── ansible/
-│   ├── playbooks/          # Scripts d'automatisation Ansible
-│   ├── roles/              # Rôles Ansible réutilisables
-│   └── inventory/          # Définitions des hôtes
-├── terraform/
-│   ├── bastion/            # Provisioning du nœud Bastion
-│   ├── modules/            # Modules Terraform réutilisables
-│   └── production/         # Définitions LXC production
-├── jenkins/
-│   ├── pipelines/          # Jenkinsfiles (Déclaratifs)
-│   └── jobs/               # Configurations des jobs
-├── docker/
-│   ├── compose/            # Stacks Docker Compose
-│   └── images/             # Dockerfiles personnalisés
-├── monitoring/
-│   ├── grafana/            # Définitions dashboards (JSON)
-│   └── prometheus/         # Configurations scraping
-└── docs/
-    ├── architecture/       # Diagrammes d'architecture
-    └── runbooks/           # Procédures opérationnelles
+```bash
+helm install sealed-secrets -n kube-system --set-string fullnameOverride=sealed-secrets-controller sealed-secrets/sealed-secrets
 ```
 
----
+##### Helm Chart on a restricted environment
 
-## 🎯 Roadmap
+In some companies you might be given access only to a single namespace, not a full cluster.
 
-- [ ] **GitOps** : Migration vers ArgoCD pour livraison applicative déclarative
-- [ ] **Service Mesh** : Évaluation Istio/Linkerd pour gestion trafic avancée
-- [ ] **Stratégie Backup** : Intégration automatisée Proxmox Backup Server
-- [ ] **Haute Disponibilité** : Ajout clustering Proxmox (setup 3 nœuds)
-- [ ] **Observabilité** : Intégration Loki pour centralisation logs
-- [ ] **Sécurité** : Implémentation Vault pour génération dynamique secrets
-- [ ] **Script** : Ajout de nouveau script (ex: créer un nouveau lxc sans toucher au code)
----
+One of the most restrictive environments you can encounter is:
+- A `namespace` was allocated to you with some `service account`.
+- You do not have access to the rest of the cluster, not even cluster CRDs.
+- You may not even be able to create further service accounts or roles in your namespace.
+- You are required to include resource limits in all your deployments.
 
-## 📚 Ressources & Documentation
+Even with these restrictions you can still install the sealed secrets Helm Chart, there is only one pre-requisite:
+- *The cluster must already have the sealed secrets CRDs installed*.
 
-- [Documentation Proxmox VE](https://pve.proxmox.com/pve-docs/)
-- [Provider Terraform Proxmox](https://registry.terraform.io/providers/Telmate/proxmox/latest/docs)
-- [Bonnes Pratiques Ansible](https://docs.ansible.com/ansible/latest/user_guide/playbooks_best_practices.html)
-- [Syntaxe Pipeline Jenkins](https://www.jenkins.io/doc/book/pipeline/syntax/)
+Once your admins installed the CRDs, if they were not there already, you can install the chart by preparing a YAML config file such as this:
 
----
+```shell
+serviceAccount:
+  create: false
+  name: {allocated-service-account}
+rbac:
+  create: false
+  clusterRole: false
+resources: 
+  limits: 
+    cpu: 150m
+    memory: 256Mi
+```
 
-## 👤 Auteur
+Note that:
+- No service accounts are created, instead the one allocated to you will be used.
+  - `{allocated-service-account}` is the name of the `service account` you were allocated on the cluster.
+- No RBAC roles are created neither in the namespace nor the cluster.
+- Resource limits must be specified.
+  - The limits are samples that should work, but you might want to review them in your particular setup.
 
-**Clément Trecourt**  
-Ingénieur DevOps | Passionné d'Automatisation
+Once that file is ready, if you named it `config.yaml` you now can install the sealed secrets Helm Chart like this: 
 
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Se_Connecter-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/votre-profil)
-[![GitHub](https://img.shields.io/badge/GitHub-Suivre-181717?style=flat&logo=github&logoColor=white)](https://github.com/votre-username)
-[![Email](https://img.shields.io/badge/Email-Contact-D14836?style=flat&logo=gmail&logoColor=white)](mailto:votre.email@exemple.com)
+```shell
+helm install sealed-secrets -n {allocated-namespace} sealed-secrets/sealed-secrets --skip-crds -f config.yaml
+```
 
----
+Where `{allocated-namespace}` is the name of the `namespace` you were allocated in the cluster.
 
-## 📄 Licence
+### Kubeseal
 
-Ce projet est sous licence MIT — voir le fichier [LICENSE](LICENSE) pour plus de détails.
+#### Homebrew
 
----
+The `kubeseal` client is also available on [homebrew](https://formulae.brew.sh/formula/kubeseal):
 
-## 🙏 Remerciements
+```bash
+brew install kubeseal
+```
 
-Construit avec passion pour l'automatisation et l'excellence infrastructurelle.
+#### MacPorts
 
-> *"L'automatisation n'est pas une fin en soi — c'est le moyen de dormir tranquille."*
+The `kubeseal` client is also available on [MacPorts](https://ports.macports.org/port/kubeseal/summary):
 
----
+```bash
+port install kubeseal
+```
 
-<div align="center">
-⭐ Mettez une étoile à ce dépôt si vous le trouvez utile ! ⭐
-</div>
+#### Nixpkgs
+
+The `kubeseal` client is also available on [Nixpkgs](https://search.nixos.org/packages?channel=unstable&show=kubeseal&from=0&size=50&sort=relevance&type=packages&query=kubeseal): (**DISCLAIMER**: Not maintained by bitnami-labs)
+
+```bash
+nix-env -iA nixpkgs.kubeseal
+```
+
+#### Linux
+
+The `kubeseal` client can be installed on Linux, using the below commands:
+
+```bash
+wget https://github.com/bitnami-labs/sealed-secrets/releases/download/<release-tag>/kubeseal-<version>-linux-amd64.tar.gz
+tar -xvzf kubeseal-<version>-linux-amd64.tar.gz kubeseal
+sudo install -m 755 kubeseal /usr/local/bin/kubeseal
+```
+
+where `release-tag` is the [version tag](https://github.com/bitnami-labs/sealed-secrets/tags) of the kubeseal release you want to use. For example: `v0.18.0`.
+
+#### Installation from source
+
+If you just want the latest client tool, it can be installed into
+`$GOPATH/bin` with:
+
+```bash
+go install github.com/bitnami-labs/sealed-secrets/cmd/kubeseal@main
+```
+
+You can specify a release tag or a commit SHA instead of `main`.
+
+The `go install` command will place the `kubeseal` binary at `$GOPATH/bin`:
+
+```bash
+$(go env GOPATH)/bin/kubeseal
+```
+
+## Upgrade
+
+Don't forget to check the [release notes](RELEASE-NOTES.md) for guidance about
+possible breaking changes when you upgrade the client tool
+and/or the controller.
+
+## Usage
+
+```bash
+# Create a json/yaml-encoded Secret somehow:
+# (note use of `--dry-run` - this is just a local file!)
+echo -n bar | kubectl create secret generic mysecret --dry-run=client --from-file=foo=/dev/stdin -o json >mysecret.json
+
+# This is the important bit:
+# (note default format is json!)
+kubeseal <mysecret.json >mysealedsecret.json
+
+# At this point mysealedsecret.json is safe to upload to Github,
+# post on Twitter, etc.
+
+# Eventually:
+kubectl create -f mysealedsecret.json
+
+# Profit!
+kubectl get secret mysecret
+```
+
+Note the `SealedSecret` and `Secret` must have **the same namespace and
+name**. This is a feature to prevent other users on the same cluster
+from re-using your sealed secrets. See the [Scopes](#scopes) section for more info.
+
+`kubeseal` reads the namespace from the input secret, accepts an explicit `--namespace` argument, and uses
+the `kubectl` default namespace (in that order). Any labels,
+annotations, etc on the original `Secret` are preserved, but not
+automatically reflected in the `SealedSecret`.
+
+By design, this scheme *does not authenticate the user*. In other
+words, *anyone* can create a `SealedSecret` containing any `Secret`
+they like (provided the namespace/name matches). It is up to your
+existing config management workflow, cluster RBAC rules, etc to ensure
+that only the intended `SealedSecret` is uploaded to the cluster. The
+only change from existing Kubernetes is that the *contents* of the
+`Secret` are now hidden while outside the cluster.
+
+### Managing existing secrets
+
+If you want `SealedSecret` controller to take management of an existing `Secret` (i.e. overwrite it when unsealing a `SealedSecret` with the same name and namespace), then you have to annotate that `Secret` with the annotation `sealedsecrets.bitnami.com/managed: "true"` ahead applying the [Usage](#usage) steps.
+
+### Update existing secrets
+
+If you want to add or update existing sealed secrets without having the cleartext for the other items,
+you can just copy&paste the new encrypted data items and merge it into an existing sealed secret.
+
+You must take care of sealing the updated items with a compatible name and namespace (see note about scopes above).
+
+You can use the `--merge-into` command to update an existing sealed secrets if you don't want to copy&paste:
+
+```bash
+echo -n bar | kubectl create secret generic mysecret --dry-run=client --from-file=foo=/dev/stdin -o json \
+  | kubeseal > mysealedsecret.json
+echo -n baz | kubectl create secret generic mysecret --dry-run=client --from-file=bar=/dev/stdin -o json \
+  | kubeseal --merge-into mysealedsecret.json
+```
+
+### Raw mode (experimental)
+
+Creating temporary Secret with the `kubectl` command, only to throw it away once piped to `kubeseal` can
+be a quite unfriendly user experience. We're working on an overhaul of the CLI experience. In the meantime,
+we offer an alternative mode where kubeseal only cares about encrypting a value to stdout, and it's your responsibility to put it inside a `SealedSecret` resource (not unlike any of the other k8s resources).
+
+It can also be useful as a building block for editor/IDE integrations.
+
+The downside is that you have to be careful to be consistent with the sealing scope, the namespace and the name.
+
+See [Scopes](#scopes)
+
+`strict` scope (default):
+
+```console
+$ echo -n foo | kubeseal --raw --namespace bar --name mysecret
+AgBChHUWLMx...
+```
+
+`namespace-wide` scope:
+
+```console
+$ echo -n foo | kubeseal --raw --namespace bar --scope namespace-wide
+AgAbbFNkM54...
+```
+Include the `sealedsecrets.bitnami.com/namespace-wide` annotation in the `SealedSecret`
+```yaml
+metadata:
+  annotations:
+    sealedsecrets.bitnami.com/namespace-wide: "true"
+```
+
+`cluster-wide` scope:
+
+```console
+$ echo -n foo | kubeseal --raw --scope cluster-wide
+AgAjLKpIYV+...
+```
+Include the `sealedsecrets.bitnami.com/cluster-wide` annotation in the `SealedSecret`
+```yaml
+metadata:
+  annotations:
+    sealedsecrets.bitnami.com/cluster-wide: "true"
+```
+
+### Validate a Sealed Secret
+
+If you want to validate an existing sealed secret, `kubeseal` has the flag `--validate` to help you.
+
+Giving a file named `sealed-secrets.yaml` containing the following sealed secret:
+
+```yaml
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: mysecret
+  namespace: mynamespace
+spec:
+  encryptedData:
+    foo: AgBy3i4OJSWK+PiTySYZZA9rO43cGDEq.....
+```
+
+You can validate if the sealed secret was properly created or not:
+
+```console
+$ cat sealed-secrets.yaml | kubeseal --validate
+```
+
+In case of an invalid sealed secret, `kubeseal` will show:
+
+```console
+$ cat sealed-secrets.yaml | kubeseal --validate
+error: unable to decrypt sealed secret
+```
+
+## Secret Rotation
+
+You should always rotate your secrets. But since your secrets are encrypted with another secret,
+you need to understand how these two layers relate to take the right decisions.
+
+TL;DR:
+
+> If a *sealing* private key is compromised, you need to follow the instructions below in "Early key renewal"
+> section before rotating any of your actual secret values.
+>
+> SealedSecret key renewal and re-encryption features are **not a substitute** for periodical rotation of your actual secret values.
+
+### Sealing key renewal
+
+Sealing keys are automatically renewed every 30 days. Which means a new sealing key is created and appended to the set of active sealing keys the controller can use to unseal `SealedSecret` resources.
+
+The most recently created sealing key is the one used to seal new secrets when you use `kubeseal` and it's the one whose certificate is downloaded when you use `kubeseal --fetch-cert`.
+
+The renewal time of 30 days is a reasonable default, but it can be tweaked as needed
+with the `--key-renew-period=<value>` flag for the command in the pod template of the `SealedSecret` controller. The `value` field can be given as golang
+duration flag (eg: `720h30m`). Assuming that you've installed Sealed Secrets into the `kube-system` namespace, use the following command to edit the Deployment controller, and add the `--key-renew-period` parameter. Once you close your text editor, and the Deployment controller has been modified, a new Pod will be automatically created to replace the old Pod.
+
+```
+kubectl edit deployment/sealed-secrets-controller --namespace=kube-system
+```
+
+A value of `0` will deactivate automatic key renewal. Of course, you may have a valid use case for deactivating automatic sealing key renewal but experience has shown that new users often tend to jump to conclusions that they want control over key renewal, before fully understanding how sealed secrets work. Read more about this in the [common misconceptions](#common-misconceptions-about-key-renewal) section below.
+
+> Unfortunately, you cannot use e.g. "d" as a unit for days because that's not supported by the Go stdlib. Instead of hitting your face with a palm, take this as an opportunity to meditate on the [falsehoods programmers believe about time](https://infiniteundo.com/post/25326999628/falsehoods-programmers-believe-about-time).
+
+A common misunderstanding is that key renewal is often thought of as a form of key rotation, where the old key is not only obsolete but actually bad and that you thus want to get rid of it.
+It doesn't help that this feature has been historically called "key rotation", which can add to the confusion.
+
+Sealed secrets are not automatically rotated and old keys are not deleted
+when new keys are generated. Old `SealedSecret` resources can be still decrypted (that's because old sealing keys are not deleted).
+
+### User secret rotation
+
+The *sealing key* renewal and SealedSecret rotation are **not a substitute** for rotating your actual secrets.
+
+A core value proposition of this tool is:
+
+> Encrypt your Secret into a SealedSecret, which *is* safe to store - even inside a public repository.
+
+If you store anything in a version control storage, and in a public one in particular, you must assume
+you cannot ever delete that information.
+
+*If* a sealing key somehow leaks out of the cluster you must consider all your `SealedSecret` resources
+encrypted with that key as compromised. No amount of sealing key rotation in the cluster or even re-encryption of existing SealedSecrets files can change that.
+
+The best practice is to periodically rotate all your actual secrets (e.g. change the password) **and** craft new
+`SealedSecret` resources with those new secrets.
+
+But if the `SealedSecret` controller was not renewing the *sealing key* that rotation would be moot,
+since the attacker could just decrypt the new secrets as well. Thus, you need to do both: periodically renew the sealing key and rotate your actual secrets!
+
+### Early key renewal
+
+If you know or suspect a *sealing key* has been compromised you should renew the key ASAP before you
+start sealing your new rotated secrets, otherwise you'll be giving attackers access to your new secrets as well.
+
+A key can be generated early by passing the current timestamp to the controller into a flag called `--key-cutoff-time` or an env var called `SEALED_SECRETS_KEY_CUTOFF_TIME`. The expected format is RFC1123, you can generate it with the `date -R` unix command.
+
+### Common misconceptions about key renewal
+
+Sealed secrets sealing keys are not access control keys (e.g. a password). They are more like the GPG key you might use to read encrypted mail sent to you. Let's continue with the email analogy for a bit:
+
+Imagine you have reasons to believe your private GPG key might have been compromised. You'd have more to lose than to gain if the first thing you do is just delete your private key. All the previous emails sent with that key are no longer accessible to you (unless you have a decrypted copy of those emails), nor are new emails sent by your friends whom you have not yet managed to tell to use the new key.
+
+Sure, the content of those encrypted emails is not secure, as an attacker might now be able to decrypt them, but what's done is done. Your sudden loss of the ability to read those emails surely doesn't undo the damage. If anything, it's worse because you no longer know for sure what secret the attacker got to know. What you really want to do is to make sure that your friend stops using your old key and that from now on all further communication is encrypted with a new key pair (i.e. your friend must know about that new key).
+
+The same logic applies to SealedSecrets. The ultimate goal is to secure your actual "user" secrets. The "sealing" secrets are just a mechanism, an "envelope". If a secret is leaked there is no going back, what's done is done.
+
+You first need to ensure that new secrets don't get encrypted with that old compromised key (in the email analogy above that's: create a new key pair and give all your friends your new public key).
+
+The second logical step is to neutralize the damage, which depends on the nature of the secret. A simple example is a database password: if you accidentally leak your database password, the thing you're supposed to do is simply to change your database password (on the database; and revoke the old one!) *and* update the `SealedSecret` resource with the new password (i.e. running `kubeseal` again).
+
+Both steps are described in the previous sections, albeit in a less verbose way. There is no shame in reading them again, now that you have a more in-depth grasp of the underlying rationale.
+
+### Manual key management (advanced)
+
+The `SealedSecret` controller and the associated workflow are designed to keep old sealing keys around and periodically add new ones. You should not delete old keys unless you know what you're doing.
+
+That said, if you want you can manually manage (create, move, delete) *sealing keys*. They are just normal k8s secrets living in the same namespace where the `SealedSecret` controller lives (usually `kube-system`, but it's configurable).
+
+There are advanced use cases that you can address by creative management of the sealing keys.
+For example, you can share the same sealing key among a few clusters so that you can apply exactly the same sealed secret in multiple clusters.
+Since sealing keys are just normal k8s secrets you can even use sealed secrets themselves and use a GitOps workflow to manage your sealing keys (useful when you want to share the same key among different clusters)!
+
+Labeling a *sealing key* secret with anything other than `active` effectively deletes
+the key from the `SealedSecret` controller, but it is still available in k8s for
+manual encryption/decryption if need be.
+
+**NOTE** `SealedSecret` controller currently does not automatically pick up manually created, deleted or relabeled sealing keys. An admin must restart the controller before the effect will apply.
+
+### Re-encryption (advanced)
+
+Before you can get rid of some old sealing keys you need to re-encrypt your SealedSecrets with the latest private key.
+
+```bash
+kubeseal --re-encrypt <my_sealed_secret.json >tmp.json \
+  && mv tmp.json my_sealed_secret.json
+```
+
+The invocation above will produce a new sealed secret file freshly encrypted with
+the latest key, without making the secrets leave the cluster to the client. You can then save that file
+in your version control system (`kubeseal --re-encrypt` doesn't update the in-cluster object).
+
+Currently, old keys are not garbage collected automatically.
+
+It's a good idea to periodically re-encrypt your SealedSecrets. But as mentioned above, don't lull yourself in a false sense of security: you must assume the old version of the `SealedSecret` resource (the one encrypted with a key you think of as dead) is still potentially around and accessible to attackers. I.e. re-encryption is not a substitute for periodically rotating your actual secrets.
+
+## Details (advanced)
+
+This controller adds a new `SealedSecret` custom resource. The
+interesting part of a `SealedSecret` is a base64-encoded
+asymmetrically encrypted `Secret`.
+
+The controller maintains a set of private/public key pairs as kubernetes
+secrets. Keys are labeled with `sealedsecrets.bitnami.com/sealed-secrets-key`
+and identified in the label as either `active` or `compromised`. On startup,
+The sealed secrets controller will...
+
+1. Search for these keys and add them to its local store if they are
+labeled as active.
+2. Create a new key
+3. Start the key rotation cycle
+
+### Crypto
+
+More details about crypto can be found [here](docs/developer/crypto.md).
+
+## Developing
+
+Developing guidelines can be found [in the Developer Guide](docs/developer/README.md).
+
+## FAQ
+
+### Will you still be able to decrypt if you no longer have access to your cluster?
+
+No, the private keys are only stored in the Secret managed by the controller (unless you have some other backup of your k8s objects). There are no backdoors - without that private key used to encrypt a given SealedSecrets, you can't decrypt it. If you can't get to the Secrets with the encryption keys, and you also can't get to the decrypted versions of your Secrets live in the cluster, then you will need to regenerate new passwords for everything, seal them again with a new sealing key, etc.
+
+### How can I do a backup of my SealedSecrets?
+
+If you do want to make a backup of the encryption private keys, it's easy to do from an account with suitable access:
+
+```bash
+kubectl get secret -n kube-system -l sealedsecrets.bitnami.com/sealed-secrets-key -o yaml >main.key
+kubectl get secret -n kube-system sealed-secrets-key -o yaml >>main.key
+```
+
+> NOTE: You need the second statement only if you ever installed sealed-secrets older than version 0.9.x on your cluster.
+
+> NOTE: This file will contain the controller's public + private keys and should be kept omg-safe!
+
+To restore from a backup after some disaster, just put that secrets back before starting the controller - or if the controller was already started, replace the newly-created secrets and restart the controller:
+
+```bash
+kubectl apply -f main.key
+kubectl delete pod -n kube-system -l name=sealed-secrets-controller
+```
+
+### Can I decrypt my secrets offline with a backup key?
+
+While treating sealed-secrets as long term storage system for secrets is not the recommended use case, some people
+do have a legitimate requirement for being able to recover secrets when the k8s cluster is down and restoring a backup into a new `SealedSecret` controller deployment is not practical.
+
+If you have backed up one or more of your private keys (see previous question), you can use the `kubeseal --recovery-unseal --recovery-private-key file1.key,file2.key,...` command to decrypt a sealed secrets file.
+
+### What flags are available for kubeseal?
+
+You can check the flags available using `kubeseal --help`.
+
+### How do I update parts of JSON/YAML/TOML/.. file encrypted with sealed secrets?
+
+A kubernetes `Secret` resource contains multiple items, basically a flat map of key/value pairs.
+SealedSecrets operate at that level, and does not care what you put in the values. In other words
+it cannot make sense of any structured configuration file you might have put in a secret and thus
+cannot help you update individual fields in it.
+
+Since this is a common problem, especially when dealing with legacy applications, we do offer an [example](docs/examples/config-template) of a possible workaround.
+
+### Can I bring my own (pre-generated) certificates?
+
+Yes, you can provide the controller with your own certificates, and it will consume them.
+Please check [here](docs/bring-your-own-certificates.md) for a workaround.
+
+### How to use kubeseal if the controller is not running within the `kube-system` namespace?
+
+If you installed the controller in a different namespace than the default `kube-system`, you need to provide this namespace
+to the `kubeseal` commandline tool. There are two options:
+
+1. You can specify the namespace via the command line option `--controller-namespace <namespace>`:
+
+  ```bash
+kubeseal --controller-namespace sealed-secrets <mysecret.json >mysealedsecret.json
+```
+
+2. Via the environment variable `SEALED_SECRETS_CONTROLLER_NAMESPACE`:
+
+  ```bash
+export SEALED_SECRETS_CONTROLLER_NAMESPACE=sealed-secrets
+kubeseal <mysecret.json >mysealedsecret.json
+```
+
+### How to verify the images?
+
+Our images are being signed using [cosign](https://github.com/sigstore/cosign). The signatures have been saved in our [GitHub Container Registry](https://ghcr.io/bitnami-labs/sealed-secrets-controller/signs).
+
+> Images up to and including v0.20.2 were signed using Cosign v1. Newer images are signed with Cosign v2.
+
+It is pretty simple to verify the images:
+
+```bash
+# export the COSIGN_VARIABLE setting up the GitHub container registry signs path
+export COSIGN_REPOSITORY=ghcr.io/bitnami-labs/sealed-secrets-controller/signs
+
+# verify the image uploaded in GHCR
+cosign verify --key .github/workflows/cosign.pub ghcr.io/bitnami-labs/sealed-secrets-controller:latest
+
+# verify the image uploaded in Dockerhub
+cosign verify --key .github/workflows/cosign.pub docker.io/bitnami/sealed-secrets-controller:latest
+```
+
+### How to use one controller for a subset of namespaces
+
+If you want to use one controller for more than one namespace, but not all namespaces, you can provide additional namespaces using the command line flag `--additional-namespaces=<namespace1>,<namespace2>,<...>`. Make sure you provide appropriate roles and rolebindings in the target namespaces, so the controller can manage the secrets in there.
+
+## Community
+
+- [#sealed-secrets on Kubernetes Slack](https://kubernetes.slack.com/messages/sealed-secrets)
+
+Click [here](http://slack.k8s.io) to sign up to the Kubernetes Slack org.
+
+### Related projects
+
+- `kubeseal-convert`: [https://github.com/EladLeev/kubeseal-convert](https://github.com/EladLeev/kubeseal-convert)
+- Visual Studio Code extension: [https://marketplace.visualstudio.com/items?itemName=codecontemplator.kubeseal](https://marketplace.visualstudio.com/items?itemName=codecontemplator.kubeseal)
+- WebSeal: generates secrets in the browser: [https://socialgouv.github.io/webseal](https://socialgouv.github.io/webseal)
+- HybridEncrypt TypeScript implementation: [https://github.com/SocialGouv/aes-gcm-rsa-oaep](https://github.com/SocialGouv/aes-gcm-rsa-oaep)
+- [DEPRACATED] Sealed Secrets Operator: [https://github.com/disposab1e/sealed-secrets-operator-helm](https://github.com/disposab1e/sealed-secrets-operator-helm)
