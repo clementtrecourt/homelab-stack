@@ -21,10 +21,17 @@ spec:
         volumeMounts:
         - name: jellyfin-config
           mountPath: /config
+        - name: jellyfin-library
+          mountPath: /library
       volumes:
       - name: jellyfin-config
         persistentVolumeClaim:
           claimName: jellyfin-config-pvc
+      - name: jellyfin-cache
+        emptyDir: {}
+      - name: jellyfin-library
+        hostPath:
+          path: /mnt/data/library   
 ---
 apiVersion: v1
 kind: Service
