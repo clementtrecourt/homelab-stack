@@ -2,7 +2,7 @@ apiVersion: helm.cattle.io/v1
 kind: HelmChart
 metadata:
   name: victoria-metrics
-  namespace: kube-system
+  namespace: monitoring
 spec:
   chart: victoria-metrics-k8s-stack
   repo: https://victoriametrics.github.io/helm-charts/
