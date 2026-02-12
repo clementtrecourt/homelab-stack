@@ -1,0 +1,20 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-requests-limits
+spec:
+  validationFailureAction: Audit
+  rules:
+  - name: check-memory-limits
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    validate:
+      pattern:
+        spec:
+          containers:
+          - resources:
+              limits:
+                memory: "?*"
