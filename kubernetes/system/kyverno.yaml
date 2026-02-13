@@ -31,3 +31,5 @@ spec:
         requests:
           cpu: 50m
           memory: 128Mi
+    webhooks:
+      failurePolicy: Ignore 
