@@ -29,8 +29,8 @@ locals {
   # --- KUBERNETES (VMs) ---
   k3s_nodes = {
     k3s-master   = { vmid = 300, ip = "192.168.1.40", cores = 2, memory = 4096 }
-    k3s-worker-1 = { vmid = 301, ip = "192.168.1.41", cores = 2, memory = 2560 }
-    k3s-worker-2 = { vmid = 302, ip = "192.168.1.42", cores = 2, memory = 2560 }
+    k3s-worker-1 = { vmid = 301, ip = "192.168.1.41", cores = 2, memory = 5120 }
+    k3s-worker-2 = { vmid = 302, ip = "192.168.1.42", cores = 2, memory = 5120 }
   }
 }
 
