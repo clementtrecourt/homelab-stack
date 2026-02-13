@@ -12,24 +12,24 @@ spec:
   createNamespace: true
   valuesContent: |-
     admissionController:
+      replicas: 1
       container:
         resources:
           limits:
-            memory: 512Mi 
+            memory: 512Mi
           requests:
             cpu: 100m
             memory: 256Mi
-   
+
       startupProbe:
-        failureThreshold: 30 
-        periodSeconds: 10    
-    
-    backgroundController:
-      resources:
-        limits:
-          memory: 256Mi
-        requests:
-          cpu: 50m
-          memory: 128Mi
+        failureThreshold: 30
+        periodSeconds: 10
+
+   
     webhooks:
       failurePolicy: Ignore 
+    
+
+    config:
+      resourceFilters:
+      - "[*/*,kyverno,*,*]"
