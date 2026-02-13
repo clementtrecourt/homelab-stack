@@ -6,12 +6,6 @@ metadata:
   annotations:
     # On dit à Traefik d'utiliser l'entrypoint web (port 80) car le tunnel arrive en HTTP
     traefik.ingress.kubernetes.io/router.entrypoints: web
-resources:
-  limits:
-    memory: 256Mi
-  requests:
-    cpu: 10m
-    memory: 128Mi
 spec:
   ingressClassName: traefik
   rules:
