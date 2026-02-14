@@ -1,0 +1,7 @@
+write-kubeconfig-mode: "0644"
+cluster-init: true
+token: "{{ k3s_shared_token }}"
+node-taint:
+  - "CriticalAddonsOnly=true:NoSchedule"
+disable:
+  - servicelb

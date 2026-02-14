@@ -1,25 +1,51 @@
 ---
-# tasks file for roles/common
-- name: Update apt cache and upgrade all packages
-  ansible.builtin.apt:
+- name: Mise à jour du cache apt et upgrade
+  apt:
     update_cache: yes
     upgrade: dist
-    cache_valid_time: 3600
 
-- name: Install common base packages
-  ansible.builtin.apt:
-    name:
-      - curl
-      - git
-      - ufw
-      - sudo
-      - btop
-      - fastfetch
-      - python3-docker
-      - fish
+- name: Installation des paquets de base
+  apt:
+    name: [curl, ufw, python3-pip, htop, unattended-upgrades, open-iscsi]
     state: present
 
-- name: Install and configure Docker
-  ansible.builtin.include_tasks: docker.yml
-  vars:
-    problematic_version_start: "1.7.28-2"
+- name: Désactivation de la SWAP (requis par K3s)
+  command: swapoff -a
+  when: ansible_swaptotal_mb > 0
+
+- name: Suppression de la SWAP du fichier fstab
+  replace:
+    path: /etc/fstab
+    regexp: '^([^#].*?\sswap\s+.*)$'
+    replace: '# \1'
+
+- name: Hardening Kernel (Sysctl)
+  sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+  with_items:
+    - { key: 'net.ipv4.ip_forward', value: '1' }
+    - { key: 'net.ipv4.conf.all.accept_redirects', value: '0' }
+    - { key: 'net.ipv4.conf.all.send_redirects', value: '0' }
+    - { key: 'net.ipv4.conf.all.rp_filter', value: '1' }
+    - { key: 'net.ipv6.conf.all.disable_ipv6', value: '0' } # On garde l'IPv6 pour HTTP/3
+
+- name: Configuration de UFW (Firewall)
+  ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: any
+  with_items:
+    - '22'    # SSH
+    - '6443'  # API Server
+    - '8472'  # Flannel VXLAN (UDP)
+    - '10250' # Kubelet Metrics
+    - '80'    # HTTP
+    - '443'   # HTTPS
+
+- name: Activation de UFW
+  ufw:
+    state: enabled
+    policy: deny

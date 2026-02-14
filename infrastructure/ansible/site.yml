@@ -1,91 +1,22 @@
 ---
-- name: 1. Common Configuration
-  hosts: all
+- hosts: all
   become: yes
   roles:
-    - role: common
-    - role: users
+    - common
 
-- name: 2. Deploy Utility Services (LXC)
-  hosts: utility_hosts
-  tasks:
-    # - name: Deploy Traefik
-    #   import_playbook: provisioning/traefik.yml
-    #   when: inventory_hostname == 'traefik'\
-
-    - name: Prepare Proxmox
-      import_playbook: provisioning/configure_proxmox.yml 
-
-    # - name: Deploy Authentik
-    #   import_playbook: provisioning/identity.yml
-
-    # - name: Deploy Servarr
-    #   import_playbook: provisioning/servarr.yml 
-
-    # - name: Deploy AdGuard Home
-    #   import_playbook: provisioning/adguard.yml 
-
-    # - name: Deploy Monitoring
-    #   import_playbook: provisioning/monitoring.yml
-
-- name: 3. Provision K3s Cluster
-  hosts: k3s_cluster
+- hosts: k3s_master
   become: yes
-  gather_facts: yes
+  roles:
+    - k3s_master
+
+- hosts: k3s_workers
+  become: yes
   vars:
-    # On récupère dynamiquement l'IP du master peu importe son nom dans l'inventaire
     master_ip: "{{ hostvars[groups['k3s_master'][0]]['ansible_host'] }}"
-    # Token secret partagé (optionnel, sinon généré auto)
-    k3s_token_secret: "supersecrettoken12345" 
+  roles:
+    - k3s_worker
 
-  tasks:
-    # --- CONFIGURATION DU MASTER ---
-    - name: Install K3s on Master
-      shell: |
-        curl -sfL https://get.k3s.io | sh -s - server \
-        --write-kubeconfig-mode 644 \
-        --node-name {{ inventory_hostname }} \
-        --tls-san {{ master_ip }} \
-        --token {{ k3s_token_secret }} \
-        --disable traefik \
-        --disable servicelb
-      args:
-        creates: /usr/local/bin/k3s
-      when: inventory_hostname in groups['k3s_master']
-
-    - name: Wait for K3s to be ready on Master
-      wait_for:
-        port: 6443
-        host: "{{ master_ip }}"
-        delay: 5
-        timeout: 300
-      when: inventory_hostname in groups['k3s_master']
-
-    # --- CONFIGURATION DES WORKERS ---
-    - name: Install K3s on Workers
-      shell: |
-        curl -sfL https://get.k3s.io | K3S_URL=https://{{ master_ip }}:6443 \
-        K3S_TOKEN={{ k3s_token_secret }} \
-        sh -s - agent \
-        --node-name {{ inventory_hostname }}
-      args:
-        creates: /usr/local/bin/k3s-agent
-      when: inventory_hostname in groups['k3s_workers']
-
-- name: 4. Configure Access
-  hosts: k3s_master
+- hosts: k3s_master
   become: yes
-  tasks:
-    - name: Fetch kubeconfig to Bastion
-      fetch:
-        src: /etc/rancher/k3s/k3s.yaml
-        dest: ~/.kube/config
-        flat: yes
-
-    - name: Replace localhost with Master IP in kubeconfig (Local Bastion)
-      delegate_to: localhost
-      become: no
-      replace:
-        path: ~/.kube/config
-        regexp: '127.0.0.1'
-        replace: "{{ hostvars[groups['k3s_master'][0]]['ansible_host'] }}"
+  roles:
+    - bootstrap

@@ -10,7 +10,7 @@
           - ca-certificates
           - nfs-common
         state: present
-################CRRER mkdir /mnt/data sur les node
+
 - name: Installer K3s Master
   hosts: k3s_master
   become: yes
@@ -39,39 +39,7 @@
       register: node_token_b64
 
     # Save facts so they are available to other plays in this run
-    - name: Register Global Token
-      set_fact:
-        global_join_token: "{{ node_token_b64.content | b64decode | trim }}"
-        global_master_ip: "{{ ansible_host }}"
-      delegate_to: localhost
-      delegate_facts: true
-
-    - name: Get Kubeconfig for local use
-      fetch:
-        src: /etc/rancher/k3s/k3s.yaml
-        dest: ./k3s_kubeconfig
-        flat: yes
-    - name: Récupérer le kubeconfig depuis le master
-      fetch:
-        src: /etc/rancher/k3s/k3s.yaml
-        dest: /tmp/k3s.yaml
-        flat: yes
-
-    - name: Installer le kubeconfig dans ~/.kube/config
-      copy:
-        src: /tmp/k3s.yaml
-        dest: ~/.kube/config
-        mode: '0600'
-      delegate_to: localhost
-      become: no
-
-    - name: Remplacer 127.0.0.1 par l'IP du Master dans la config
-      replace:
-        path: ~/.kube/config
-        regexp: '127\.0\.0\.1'
-        replace: "{{ ansible_host }}"
-      delegate_to: localhost
-      become: no
+    
 
     - name: Créer le point de montage
       file:
