@@ -71,14 +71,11 @@ metadata:
   name: pocketbase-ingress
   namespace: pocketbase
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web, websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
+   
+    traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
   ingressClassName: traefik
-  tls:
-    - hosts:
-        - api.clem-ops.org
-      secretName: clem-ops-org-tls
+ 
   rules:
     - host: api.clem-ops.org
       http:
