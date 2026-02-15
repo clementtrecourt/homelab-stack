@@ -56,10 +56,9 @@ spec:
           value: "https://api.clem-ops.org"
         - name: CORS_METHODS
           value: "GET,POST,PATCH,DELETE,OPTIONS"
+
         - name: CORS_ALLOWED_HEADERS
-          value: "Content-Type,Authorization"
-        - name: CORS_EXPOSED_HEADERS
-          value: "Content-Range"
+          value: "Content-Type,Authorization,X-Directus-Project,X-Requested-With"
         - name: CORS_CREDENTIALS
           value: "true"
         resources:
