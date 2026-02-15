@@ -71,11 +71,10 @@ metadata:
   name: pocketbase-ingress
   namespace: pocketbase
   annotations:
-   
     traefik.ingress.kubernetes.io/router.entrypoints: web
+    traefik.ingress.kubernetes.io/router.middlewares: pocketbase-force-https-headers@kubernetescrd
 spec:
   ingressClassName: traefik
- 
   rules:
     - host: api.clem-ops.org
       http:

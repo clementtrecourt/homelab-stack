@@ -44,7 +44,7 @@ spec:
     tlsOptions:
       default:
         minVersion: VersionTLS13
-        sniStrict: false # On laisse false pour éviter les soucis avec Cloudflare
+        sniStrict: false 
 
     persistence:
       enabled: true
