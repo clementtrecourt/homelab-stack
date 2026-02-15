@@ -15,16 +15,14 @@ spec:
     spec:
       containers:
       - name: directus
-        image: directus/directus:latest
+        image: directus/directus:10.13 # On fixe une version stable 2024/2025
         ports:
         - containerPort: 8055
         env:
         - name: KEY
-          value: "UneCleRandomVraimentLonguePourLaSecuriteUUID"
+          value: "67984812-7067-4f51-8404-367610065091"
         - name: SECRET
-          value: "UnSecretRandomVraimentLonguePourLaSecuriteUUID"
-        
-  
+          value: "d9e843e1-3f62-4a00-9830-749666014521"
         - name: DB_CLIENT
           value: "pg"
         - name: DB_HOST
@@ -37,11 +35,9 @@ spec:
           value: "admin"
         - name: DB_PASSWORD
           value: "MonSuperMotDePasse"
-        
-  
+        # Empêche la boucle de redirection
         - name: PUBLIC_URL
           value: "https://api.clem-ops.org"
-        
         resources:
           limits:
             memory: 512Mi
