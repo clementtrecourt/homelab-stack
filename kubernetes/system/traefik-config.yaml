@@ -8,7 +8,7 @@ spec:
     global:
       checkNewVersion: false
       sendAnonymousUsage: false
-
+    
     logs:
       general:
         level: INFO
@@ -28,16 +28,13 @@ spec:
     ports:
       web:
         port: 8000
-        expose: true        # On repasse en booléen simple pour corriger l'erreur
+        expose: true
         exposedPort: 80
-        redirections:
-          entryPoint:
-            to: websecure
-            scheme: https
+      
       
       websecure:
         port: 8443
-        expose: true        # Ici aussi, booléen simple
+        expose: true
         exposedPort: 443
         http3:
           enabled: true
@@ -47,7 +44,7 @@ spec:
     tlsOptions:
       default:
         minVersion: VersionTLS13
-        sniStrict: false
+        sniStrict: false # On laisse false pour éviter les soucis avec Cloudflare
 
     persistence:
       enabled: true
