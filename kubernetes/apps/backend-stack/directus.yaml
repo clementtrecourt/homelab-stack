@@ -41,6 +41,27 @@ spec:
           value: "MonSuperMotDePasse"
         - name: PUBLIC_URL
           value: "https://api.clem-ops.org"
+         
+        - name: REFRESH_TOKEN_COOKIE_SECURE
+          value: "true"
+        - name: REFRESH_TOKEN_COOKIE_SAME_SITE
+          value: "none"
+        - name: REFRESH_TOKEN_COOKIE_DOMAIN
+          value: "clem-ops.org"
+        
+ 
+        - name: CORS_ENABLED
+          value: "true"
+        - name: CORS_ORIGIN
+          value: "https://api.clem-ops.org"
+        - name: CORS_METHODS
+          value: "GET,POST,PATCH,DELETE,OPTIONS"
+        - name: CORS_ALLOWED_HEADERS
+          value: "Content-Type,Authorization"
+        - name: CORS_EXPOSED_HEADERS
+          value: "Content-Range"
+        - name: CORS_CREDENTIALS
+          value: "true"
         resources:
           limits:
             memory: 512Mi
