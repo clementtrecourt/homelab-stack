@@ -33,7 +33,9 @@ spec:
           value: "tracker_db"
         - name: DB_USER
           value: "admin"
-        - name: DB_PASSWORD
+        - name: ADMIN_EMAIL
+          value: "admin@clem-ops.org"
+        - name: ADMIN_PASSWORD
           value: "MonSuperMotDePasse"
         # Empêche la boucle de redirection
         - name: PUBLIC_URL
