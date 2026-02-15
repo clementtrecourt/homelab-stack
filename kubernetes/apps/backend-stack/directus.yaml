@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: directus
+  namespace: backend-stack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: directus
+  template:
+    metadata:
+      labels:
+        app: directus
+    spec:
+      containers:
+      - name: directus
+        image: directus/directus:latest
+        ports:
+        - containerPort: 8055
+        env:
+        - name: KEY
+          value: "UneCleRandomVraimentLonguePourLaSecuriteUUID"
+        - name: SECRET
+          value: "UnSecretRandomVraimentLonguePourLaSecuriteUUID"
+        
+  
+        - name: DB_CLIENT
+          value: "pg"
+        - name: DB_HOST
+          value: "postgres"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_DATABASE
+          value: "tracker_db"
+        - name: DB_USER
+          value: "admin"
+        - name: DB_PASSWORD
+          value: "MonSuperMotDePasse"
+        
+  
+        - name: PUBLIC_URL
+          value: "https://api.clem-ops.org"
+        
+        resources:
+          limits:
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: directus
+  namespace: backend-stack
+spec:
+  ports:
+  - port: 80
+    targetPort: 8055
+  selector:
+    app: directus
