@@ -12,24 +12,21 @@ spec:
     metadata:
       labels:
         app: directus
-   spec:
+    spec:
       containers:
       - name: directus
-        image: directus/directus:11 # On passe à la version 2025/2026
+        image: directus/directus:11
         ports:
         - containerPort: 8055
         env:
-
         - name: KEY
           value: "67984812-7067-4f51-8404-367610065091"
         - name: SECRET
           value: "d9e843e1-3f62-4a00-9830-749666014521"
-        
         - name: ADMIN_EMAIL
           value: "admin@clem-ops.org"
         - name: ADMIN_PASSWORD
           value: "MonSuperMotDePasse"
-        
         - name: DB_CLIENT
           value: "pg"
         - name: DB_HOST
@@ -41,8 +38,7 @@ spec:
         - name: DB_USER
           value: "admin"
         - name: DB_PASSWORD
-          value: "MonSuperMotDePasse" 
-        
+          value: "MonSuperMotDePasse"
         - name: PUBLIC_URL
           value: "https://api.clem-ops.org"
         resources:
