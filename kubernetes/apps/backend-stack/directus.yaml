@@ -53,7 +53,7 @@ spec:
         - name: CORS_ENABLED
           value: "true"
         - name: CORS_ORIGIN
-          value: true
+          value: "true"
         - name: CORS_METHODS
           value: "GET,POST,PATCH,DELETE,OPTIONS"
 
