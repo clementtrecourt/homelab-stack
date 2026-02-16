@@ -1,3 +1,0 @@
----
-# defaults file for the users role
-default_start_dir: "/opt/homelab-stack/docker-compose"

@@ -1,0 +1,20 @@
+---
+- name: Installer le paquet client NFS
+  ansible.builtin.apt:
+    name: nfs-common
+    state: present
+    update_cache: yes
+
+- name: Créer le point de montage
+  ansible.builtin.file:
+    path: "{{ mount_point }}"
+    state: directory
+    mode: '0755'
+
+- name: Monter le partage NFS (fstab)
+  ansible.posix.mount:
+    path: "{{ mount_point }}"
+    src: "{{ nfs_server }}:{{ nfs_export }}"
+    fstype: nfs4
+    opts: rw,_netdev,hard,timeo=600,retrans=5
+    state: mounted

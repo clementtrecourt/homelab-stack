@@ -1,6 +1,12 @@
 ---
+- name: S'assurer que les dépendances Python pour K8s sont là 
+  ansible.builtin.pip:
+    name:
+      - kubernetes
+      - PyYAML
+
 - name: Installer Helm
-  unarchive:
+  ansible.builtin.unarchive:
     src: https://get.helm.sh/helm-v3.12.0-linux-amd64.tar.gz
     dest: /usr/local/bin
     remote_src: yes
@@ -12,7 +18,7 @@
     name: argoproj
     repo_url: "https://argoproj.github.io/argo-helm"
 
-- name: Installer ArgoCD
+- name: Installer ArgoCD via Helm
   kubernetes.core.helm:
     name: argocd
     chart_ref: argoproj/argo-cd
@@ -22,17 +28,18 @@
       server:
         extraArgs: ["--insecure"]
 
-- name: Attendre que l'API ArgoCD soit prête
+- name: Attendre qu'ArgoCD soit opérationnel
   kubernetes.core.k8s_info:
     kind: Deployment
     name: argocd-server
     namespace: argocd
   register: argocd_status
   until: argocd_status.resources[0].status.readyReplicas | default(0) > 0
-  retries: 20
+  retries: 30
   delay: 10
 
-- name: Appliquer la Root Application 
+- name: Appliquer la Root Application (Bootstrap GitOps)
   kubernetes.core.k8s:
     state: present
-    definition: "{{ lookup('file', '../../kubernetes/root-app.yaml') }}"
+  
+    definition: "{{ lookup('file', playbook_dir + '/../kubernetes/root-app.yaml') }}"

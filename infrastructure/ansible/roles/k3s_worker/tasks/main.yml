@@ -3,11 +3,13 @@
   file:
     path: /etc/rancher/k3s
     state: directory
-
-- name: Déposer la configuration K3s Worker
-  template:
-    src: config.yaml.j2
-    dest: /etc/rancher/k3s/config.yaml
+    mode: '0755'
 
 - name: Installer K3s sur le Worker
-  shell: curl -sfL https://get.k3s.io | K3S_URL=https://{{ master_ip }}:6443 K3S_TOKEN={{ hostvars[groups['k3s_master'][0]]['k3s_token'] }} sh -
+  shell: |
+    curl -sfL https://get.k3s.io | \
+    K3S_URL=https://{{ master_ip }}:6443 \
+    K3S_TOKEN={{ k3s_shared_token }} \
+    sh -
+  args:
+    creates: /usr/local/bin/k3s 
