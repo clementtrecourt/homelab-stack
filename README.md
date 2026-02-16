@@ -120,7 +120,7 @@ graph TB
 <tr>
 <td>☸️ Orchestration</td>
 <td>K3s (Kubernetes Léger)</td>
-<td>Orchestration conteneurs avec control plane HA</td>
+<td>Orchestration conteneurs avec control plane Isolé</td>
 </tr>
 <tr>
 <td>🔄 GitOps</td>
@@ -418,12 +418,16 @@ cp infrastructure/terraform/terraform.tfvars.example terraform.tfvars
 cd infrastructure/
 ./deploy.sh
 
-# 4. Accéder à ArgoCD
-kubectl port-forward -n argocd svc/argocd-server 8080:443
+# 4. Accès à la Console d'Administration (via Cloudflare Tunnel)
+# URL : https://argocd.clem-ops.org
 # Utilisateur : admin
-# Mot de passe : kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+# Mot de passe :
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 
-# 5. Surveiller le déploiement
+# Note : Accès de secours (Break-Glass) si le tunnel est hors-ligne :
+# kubectl port-forward -n argocd svc/argocd-server 8080:443
+
+# 5. Surveiller la réconciliation GitOps
 watch kubectl get pods -A
 ```
 
