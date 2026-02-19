@@ -26,7 +26,8 @@
   hosts: k3s_workers
   become: yes
   vars:
-    master_ip: "{{ hostvars[groups['k3s_master'][0]]['ansible_host'] | default(hostvars[groups['k3s_master'][0]]['inventory_hostname']) }}"
+    master_token: "{{ hostvars[groups['k3s_master'][0]]['k3s_token'] }}"
+    master_ip: "{{ hostvars[groups['k3s_master'][0]]['ansible_host'] }}"
   roles:
     - k3s_worker
 

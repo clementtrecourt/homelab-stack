@@ -17,7 +17,7 @@ if [ ! -f "$INVENTORY" ]; then
 fi
 
 echo "⏳ 2. Attente du boot des VMs (20s)..."
-sleep 30
+sleep 60
 # Dans ton deploy.sh, après terraform apply
 echo "🧹 Nettoyage des anciennes clés SSH..."
 ssh-keygen -f "$HOME/.ssh/known_hosts" -R "192.168.1.40" > /dev/null 2>&1

@@ -1,9 +1,18 @@
 ---
-- name: S'assurer que les dépendances Python pour K8s sont là 
-  ansible.builtin.pip:
+- name: Installer dépendances Python K8s via apt
+  ansible.builtin.apt:
     name:
-      - kubernetes
-      - PyYAML
+      - python3-kubernetes
+      - python3-yaml
+    state: present
+    update_cache: yes
+
+- name: Copier kubeconfig pour root
+  ansible.builtin.copy:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: /root/.kube/config
+    remote_src: yes
+    mode: '0600'
 
 - name: Installer Helm
   ansible.builtin.unarchive:
@@ -24,7 +33,12 @@
     chart_ref: argoproj/argo-cd
     release_namespace: argocd
     create_namespace: true
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
     values:
+      global:
+        nodeSelector: 
+          kubernetes.io/os: linux
+      
       server:
         extraArgs: ["--insecure"]
 
@@ -42,4 +56,4 @@
   kubernetes.core.k8s:
     state: present
   
-    definition: "{{ lookup('file', playbook_dir + '/../kubernetes/root-app.yaml') }}"
+    definition: "{{ lookup('file', playbook_dir + '/../../kubernetes/root-app.yaml') }}"
