@@ -73,13 +73,13 @@ metadata:
   name: jellyfin-config-pv
 spec:
   capacity:
-    storage: 901Gi
+    storage: 50Gi
   accessModes:
-    - ReadWriteOnce
-  storageClassName: manual
+    - ReadWriteMany
+  nfs:
+    server: 192.168.1.120  
+    path: /data/jellyfin
   persistentVolumeReclaimPolicy: Retain
-  hostPath:
-    path: /mnt/data/docker-data/jellyfin
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
