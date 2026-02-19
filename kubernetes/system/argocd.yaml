@@ -4,18 +4,18 @@ metadata:
   name: argocd-server-ingress
   namespace: argocd
   annotations:
-    # On dit à Traefik d'utiliser l'entrypoint web (port 80) car le tunnel arrive en HTTP
     traefik.ingress.kubernetes.io/router.entrypoints: web
+    traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
   ingressClassName: traefik
   rules:
-  - host: argocd.clem-ops.org
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: argocd-server
-            port:
-              name: http # On utilise le port 80 d'ArgoCD
+    - host: argocd.clem-ops.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  name: http

@@ -2,7 +2,7 @@
   file:
     path: /etc/rancher/k3s
     state: directory
-    mode: '0755'
+    mode: "0755"
 
 - name: Déposer la configuration K3s Master
   template:
@@ -16,6 +16,13 @@
   environment:
     INSTALL_K3S_EXEC: "server"
 
+- name: Wait for K3s API to be ready
+  wait_for:
+    host: "{{ ansible_host }}"
+    port: 6443
+    delay: 10
+    timeout: 120
+
 - name: Récupérer le Token
   slurp:
     src: /var/lib/rancher/k3s/server/node-token
@@ -24,4 +31,4 @@
 - name: Sauvegarder le token dans les facts
   set_fact:
     k3s_token: "{{ k3s_token_base64.content | b64decode | trim }}"
-    cacheable: yes 
+    cacheable: yes
