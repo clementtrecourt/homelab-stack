@@ -55,3 +55,4 @@ htpasswd
 kubectlinfrastructure/ansible/env/
 venv/
 *.pyc
+pub-sealed-secrets.pem
