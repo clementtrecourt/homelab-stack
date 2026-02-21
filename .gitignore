@@ -56,3 +56,4 @@ kubectlinfrastructure/ansible/env/
 venv/
 *.pyc
 pub-sealed-secrets.pem
+sealed-secrets-master.key
