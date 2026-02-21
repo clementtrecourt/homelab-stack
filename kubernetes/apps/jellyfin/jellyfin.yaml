@@ -80,7 +80,7 @@ metadata:
   name: jellyfin-config-pv
 spec:
   capacity:
-    storage: 50Gi
+    storage: 901Gi
   accessModes:
     - ReadWriteMany
   nfs:
