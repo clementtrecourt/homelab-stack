@@ -1,3 +1,12 @@
+Deux problèmes dans ce fichier :
+
+    Le PV n'a pas de storageClassName: manual
+    L'ingress est encore en web sans TLS
+
+Corrige les deux d'un coup :
+bash
+
+cat > kubernetes/apps/jellyfin/jellyfin.yaml << 'EOF'
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -23,6 +32,13 @@ spec:
               mountPath: /config
             - name: jellyfin-library
               mountPath: /library
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"
       volumes:
         - name: jellyfin-config
           persistentVolumeClaim:
@@ -32,13 +48,6 @@ spec:
         - name: jellyfin-library
           hostPath:
             path: /mnt/data/library
-      resources:
-        requests:
-          memory: "512Mi"
-          cpu: "200m"
-        limits:
-          memory: "2Gi"
-          cpu: "2000m"
 ---
 apiVersion: v1
 kind: Service
@@ -52,16 +61,20 @@ spec:
     - port: 80
       targetPort: 8096
 ---
-# --- LE FIX DU 404 : INGRESS STANDARD ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: jellyfin
   namespace: default
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
   ingressClassName: traefik
+  tls:
+  - hosts:
+    - jellyfin.clem-ops.org
+    secretName: clem-ops-org-tls-default
   rules:
     - host: jellyfin.clem-ops.org
       http:
@@ -79,6 +92,7 @@ kind: PersistentVolume
 metadata:
   name: jellyfin-config-pv
 spec:
+  storageClassName: manual
   capacity:
     storage: 902Gi
   accessModes:
