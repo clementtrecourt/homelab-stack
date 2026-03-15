@@ -1,0 +1,16 @@
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  creationTimestamp: null
+  name: admin-auth-secret
+  namespace: kube-system
+spec:
+  encryptedData:
+    users: AgBgV7o+PucRucgg3ZXlm6uMCSKSpAHIsFTHXBy9FbgfcuwSVevvAmsmOSXWyCDufNhU/qVsI7mC6gK67mb9AxUfecRx41+Y0gosKSqJVm2NYvIPpkPMIKAe4NhWCpZIbJHr72uvN2RHGGUvXJkK/3pKuRlOLQbsSgf+lcu4s+Ppb86GZOvpjrZ4TgMTZbDo3rgZmnaVMKztWeYdSZnu71GRddSdOOUHgnBYIkhwINAztrBOehwDkkpWUWmed32y5vjXByFIXr1sejOTrq4zwN8qXSH3iJHYtMQpwNanKh7s3Bmb/WanOMD5vb56Mw593GEQMclFW/dWugZW4VEyEo//2ixlFpAtbKPSDT4zPIXyN5pjR+tyEG/AItW9h+33aCcPA10je01hr1FUFz0QMf9EXklFBwEBfydpkSSBnPcy3WAQrVBkfkNDbU/9zRCRN/O5J9N/5TbRpPnEJ54z2B9Dr9G9mgrUPB31a+KaQAsaLKkpdkIGe9Lhx5MTCwkRz69agk6B96USkiaSPXS2uRUDjsrzB/oMYJdvAdTkpyCv/eJdAnEGZ5kkLC30eKSEsXR3Od5wdg0vRiPAH8H8mcHZhAnlrWEZIZCBk85TpQ9sDmQxQi9uhi9tqr7RGg3P3nk3y2Qk43eFiky5p/NGLUHOCATjQ8U44//xda3dVUSLmh9OiV5pMk0lZsUutinUW6R0AnFMhOhoKeeCCJckLoyX7tluQrfJW/J+cP7NNySSB/mNq3Zpf/TaNLiIuQOHI7PmHXQppJFUCMdE53MWn0JEDzLozw==
+  template:
+    metadata:
+      creationTimestamp: null
+      name: admin-auth-secret
+      namespace: kube-system
+    type: Opaque
+
