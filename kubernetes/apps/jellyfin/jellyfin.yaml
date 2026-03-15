@@ -59,13 +59,8 @@ metadata:
   namespace: default
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
   ingressClassName: traefik
-  tls:
-  - hosts:
-    - jellyfin.clem-ops.org
-    secretName: clem-ops-org-tls-default
   rules:
     - host: jellyfin.clem-ops.org
       http:
@@ -90,7 +85,7 @@ spec:
     - ReadWriteMany
   nfs:
     server: 192.168.1.120
-    path: /data/jellyfin
+    path: /data/library
   persistentVolumeReclaimPolicy: Retain
 ---
 apiVersion: v1
