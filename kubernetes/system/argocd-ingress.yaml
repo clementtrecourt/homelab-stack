@@ -4,8 +4,10 @@ metadata:
   name: argocd-server-ingress
   namespace: argocd
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
+    # 1. Autoriser l'entrée web (80)
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    # 2. Forcer Traefik à parler en HTTPS avec le pod ArgoCD (requis par Argo)
+    traefik.ingress.kubernetes.io/service.serversscheme: https
 spec:
   ingressClassName: traefik
   tls:
@@ -22,4 +24,4 @@ spec:
           service:
             name: argocd-server
             port:
-              number: 80
+              number: 443 # Important : on pointe vers le port HTTPS du service
