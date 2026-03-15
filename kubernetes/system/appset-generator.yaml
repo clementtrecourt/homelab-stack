@@ -4,11 +4,6 @@ metadata:
   name: apps-generator
   namespace: argocd
 spec:
-  ignoreDifferences:
-  - group: networking.k8s.io
-    kind: Ingress
-    jsonPointers:
-    - /status/loadBalancer
   generators:
     - git:
         repoURL: https://github.com/clementtrecourt/homelab-stack.git
