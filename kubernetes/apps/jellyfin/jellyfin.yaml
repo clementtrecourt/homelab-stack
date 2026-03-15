@@ -1,12 +1,3 @@
-Deux problèmes dans ce fichier :
-
-    Le PV n'a pas de storageClassName: manual
-    L'ingress est encore en web sans TLS
-
-Corrige les deux d'un coup :
-bash
-
-cat > kubernetes/apps/jellyfin/jellyfin.yaml << 'EOF'
 apiVersion: apps/v1
 kind: Deployment
 metadata:
