@@ -1,14 +1,14 @@
 ---
 - name: Hardening et Préparation OS
   hosts: all
-  become: yes
+  become: true
   roles:
     - common
     - users
 
 - name: Préparation Stockage (NFS)
   hosts: k3s_workers
-  become: yes
+  become: true
   vars:
     nfs_server: "192.168.1.120"
     nfs_export: "/data"
@@ -18,13 +18,13 @@
 
 - name: Installation Control Plane (K3s Master)
   hosts: k3s_master
-  become: yes
+  become: true
   roles:
     - k3s_master
 
 - name: Installation Agents (K3s Workers)
   hosts: k3s_workers
-  become: yes
+  become: true
   vars:
     master_token: "{{ hostvars[groups['k3s_master'][0]]['k3s_token'] }}"
     master_ip: "{{ hostvars[groups['k3s_master'][0]]['ansible_host'] }}"
@@ -33,6 +33,6 @@
 
 - name: Bootstrap GitOps (ArgoCD)
   hosts: k3s_master
-  become: yes
+  become: true
   roles:
     - bootstrap

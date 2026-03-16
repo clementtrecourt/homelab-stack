@@ -3,6 +3,14 @@
   apt:
     update_cache: yes
     upgrade: dist
+  register: apt_upgrade_result
+
+- name: Reboot si nécessaire après upgrade
+  reboot:
+    reboot_timeout: 120
+    connect_timeout: 10
+    post_reboot_delay: 15
+  when: apt_upgrade_result.changed
 
 - name: Installation des paquets de base
   apt:
@@ -26,11 +34,11 @@
     state: present
     reload: yes
   with_items:
-    - { key: 'net.ipv4.ip_forward', value: '1' }
-    - { key: 'net.ipv4.conf.all.accept_redirects', value: '0' }
-    - { key: 'net.ipv4.conf.all.send_redirects', value: '0' }
-    - { key: 'net.ipv4.conf.all.rp_filter', value: '1' }
-    - { key: 'net.ipv6.conf.all.disable_ipv6', value: '0' } # On garde l'IPv6 pour HTTP/3
+    - { key: "net.ipv4.ip_forward", value: "1" }
+    - { key: "net.ipv4.conf.all.accept_redirects", value: "0" }
+    - { key: "net.ipv4.conf.all.send_redirects", value: "0" }
+    - { key: "net.ipv4.conf.all.rp_filter", value: "1" }
+    - { key: "net.ipv6.conf.all.disable_ipv6", value: "0" }
 
 - name: Configuration de UFW (Firewall)
   ufw:
@@ -38,12 +46,12 @@
     port: "{{ item }}"
     proto: any
   with_items:
-    - '22'    # SSH
-    - '6443'  # API Server
-    - '8472'  # Flannel VXLAN (UDP)
-    - '10250' # Kubelet Metrics
-    - '80'    # HTTP
-    - '443'   # HTTPS
+    - "22"
+    - "6443"
+    - "8472"
+    - "10250"
+    - "80"
+    - "443"
 
 - name: Activation de UFW
   ufw:

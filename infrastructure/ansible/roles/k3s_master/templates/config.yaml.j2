@@ -1,6 +1,9 @@
+# config.yaml.j2
 write-kubeconfig-mode: "0644"
 cluster-init: true
 tls-san:
   - "{{ ansible_host }}"
+  - "127.0.0.1"
+  - "localhost"
 disable:
   - servicelb
