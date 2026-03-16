@@ -80,7 +80,6 @@ graph TB
     Traefik --> ArgoCD
     Traefik --> Directus
     Traefik --> Jellyfin
-    Directus -->|SQL| PG
     CertManager -->|Challenge DNS-01| CF
     ArgoCD -.->|Gère| Directus
     ArgoCD -.->|Gère| Jellyfin
