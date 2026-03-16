@@ -34,8 +34,6 @@ id_ed25519.pub
 .idea
 .DS_Store
 Thumbs.db
-.repomix
-repomix-output.xml
 # --- Node.js (App Budget) ---
 node_modules/
 npm-debug.log
