@@ -91,7 +91,6 @@ graph TB
 2. **Tunnel Zero Trust** : Cloudflare → Cluster (aucun port entrant)
 3. **Ingress** : Traefik route vers les services avec terminaison TLS
 4. **Application** : Workloads conteneurisés avec limites de ressources
-5. **Données** : PostgreSQL persistant avec gestion des volumes
 
 ---
 
@@ -360,7 +359,6 @@ failurePolicy: Ignore
 - ✅ Gestion Secrets (Sealed Secrets)
 - ✅ Service Mesh & Ingress (Traefik)
 - ✅ Gestion Certificats (Cert-Manager)
-- ✅ Administration BDD (PostgreSQL)
 - ✅ Monitoring & Observabilité
 - ✅ Sécurité Réseau (Zero Trust)
 
@@ -460,16 +458,6 @@ Ce projet démontre une expérience pratique avec :
 
 ---
 
-## 📝 Documentation
-
-- 📘 [Analyse Architecture Approfondie](docs/architecture.md)
-- 🔧 [Guide Dépannage](docs/troubleshooting.md)
-- 🔒 [Checklist Hardening Sécurité](docs/security.md)
-- 📊 [Guide Tuning Ressources](docs/performance.md)
-- 🔄 [Plan Disaster Recovery](docs/disaster-recovery.md)
-
----
-
 ## 🤝 Contribution
 
 Ceci est un projet homelab personnel, mais suggestions et améliorations sont bienvenues !
@@ -493,9 +481,8 @@ Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour détail
 **Clément Trecourt**  
 Ingénieur DevOps | Spécialiste Kubernetes | Passionné d'Automatisation
 
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connexion-0077B5?style=for-the-badge&logo=linkedin)](https://linkedin.com/in/votrprofil)
-[![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail)](mailto:votre.email@example.com)
-[![Portfolio](https://img.shields.io/badge/Portfolio-Visite-4285F4?style=for-the-badge&logo=google-chrome)](https://votreportfolio.com)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connexion-0077B5?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/clement-trecourt/)
+[![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail)](mailto:clementt.pro@protonmail.com)
 
 ---
 
