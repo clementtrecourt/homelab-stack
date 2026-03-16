@@ -138,11 +138,6 @@ graph TB
 <td>Chiffrement secrets, certificats SSL automatisés</td>
 </tr>
 <tr>
-<td>🗄️ Base de Données</td>
-<td>PostgreSQL 16 (Alpine)</td>
-<td>Stockage persistant avec stratégie de backup</td>
-</tr>
-<tr>
 <td>📊 Monitoring</td>
 <td>VictoriaMetrics + Grafana</td>
 <td>Collection métriques et visualisation</td>
@@ -182,7 +177,7 @@ cd infrastructure/
 3. **Phase Kubernetes**
    - Déploie services core (Sealed Secrets, Cert-Manager)
    - Établit Cloudflare Tunnel
-   - ArgoCD auto-découvre et déploie les applications
+   - ArgoCD auto-découvre et déploie les applications via ApplicationSets
 
 ### Structure du Dépôt
 
@@ -204,8 +199,8 @@ cd infrastructure/
 │   │   └── cert-manager/
 │   ├── apps/               # Manifestes applications
 │   │   ├── directus/
-│   │   ├── jellyfin/
-│   │   └── postgresql/
+│   │   └── jellyfin/
+│   │   
 │   └── infrastructure/     # Services plateforme
 │       ├── traefik/
 │       ├── cloudflare-tunnel/
@@ -407,7 +402,7 @@ failurePolicy: Ignore
 
 ```bash
 # 1. Cloner le dépôt
-git clone https://github.com/votreutilisateur/k3s-homelab.git
+git clone https://github.com/clementtrecourt/k3s-homelab.git
 cd k3s-homelab
 
 # 2. Configurer les variables
