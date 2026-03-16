@@ -65,10 +65,7 @@ graph TB
             Directus[🎨 Directus v11<br/>Headless CMS]
             Jellyfin[🎬 Jellyfin<br/>Serveur Média]
         end
-        
-        subgraph "Couche Données"
-            PG[(🗄️ PostgreSQL 16<br/>Stateful)]
-        end
+      
         
         subgraph "Sécurité & Observabilité"
             SealedSecrets[🔐 Sealed Secrets]
