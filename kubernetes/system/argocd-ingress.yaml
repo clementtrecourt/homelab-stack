@@ -9,17 +9,17 @@ metadata:
 spec:
   ingressClassName: traefik
   tls:
-  - hosts:
-    - argocd.clem-ops.org
-    secretName: clem-ops-org-tls
+    - hosts:
+        - argocd.clem-ops.org
+      secretName: clem-ops-org-tls
   rules:
-  - host: argocd.clem-ops.org
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: argocd-server
-            port:
-              number: 80 # Important : on pointe vers le port HTTPS du service
+    - host: argocd.clem-ops.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 80
