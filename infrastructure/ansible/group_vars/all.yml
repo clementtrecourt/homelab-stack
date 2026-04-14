@@ -1,12 +1,6 @@
 ---
-# Token partagé pour le cluster K3s (choisis ce que tu veux)
 k3s_shared_token: "K108f972b2269a230559f63567890abcdef1234567890"
 
-# Version de K3s à installer
 k3s_version: v1.28.4+k3s2
-
-# ansible_become_password="clement2509"
-
-user_clem_password: "toor"
 
 default_start_dir: "/home/clem/homelab-stack"
