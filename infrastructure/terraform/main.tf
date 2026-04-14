@@ -81,7 +81,7 @@ resource "proxmox_vm_qemu" "k3s_cluster" {
   # 1. FORCE UEFI & AGENT
   bios    = "ovmf"
   machine = "q35"
-  agent   = 1 # Force l'agent à 1 (il était à 0 dans ton config)
+  agent   = 1 
 
   disk {
     slot    = "virtio0"
