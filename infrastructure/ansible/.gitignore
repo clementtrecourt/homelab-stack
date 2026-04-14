@@ -3,3 +3,4 @@
 inventory.ini
 k3s_kubeconfig
 ansible/k3s_kubeconfig
+inventory.tf.ini
