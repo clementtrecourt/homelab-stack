@@ -83,3 +83,25 @@ spec:
         app: grafana
     sessionAffinity: None
     type: LoadBalancer
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+    name: grafana
+    namespace: grafana
+    annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+spec:
+    ingressClassName: traefik
+    rules:
+        - host: grafana.clem-ops.org
+          http:
+              paths:
+                  - path: /
+                    pathType: Prefix
+                    backend:
+                        service:
+                            name: grafana
+                            port:
+                                number: 3000
