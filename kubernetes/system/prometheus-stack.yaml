@@ -25,6 +25,10 @@ spec:
                   resources:
                     requests:
                       storage: 10Gi
+        prometheusOperator:
+          admissionWebhooks:
+            patch:
+              enabled: false
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
@@ -34,6 +38,5 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-      - ServerSideApply=true           
-      - Replace=true                   
+      - ServerSideApply=true
       - SkipDryRunOnMissingResource=true
