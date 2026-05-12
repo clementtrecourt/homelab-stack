@@ -27,6 +27,7 @@ spec:
                       storage: 10Gi
         prometheusOperator:
           admissionWebhooks:
+            enabled: false
             patch:
               enabled: false
   destination:
