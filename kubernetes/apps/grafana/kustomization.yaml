@@ -13,7 +13,3 @@ configMapGenerator:
       options:
           disableNameSuffixHash: true
           immutable: false
-
-generatorOptions:
-    annotations:
-        config.kubernetes.io/local-config: "true"
