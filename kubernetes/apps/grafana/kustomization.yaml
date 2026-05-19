@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+    - deployment.yaml
+    - provisioning-configmap.yaml
+
+configMapGenerator:
+    - name: grafana-dashboards
+      files:
+          - dashboards/Loki.json
+          - dashboards/NodeExporter.json
+      options:
+          disableNameSuffixHash: true

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: grafana-provisioning
+    namespace: monitoring
+data:
+    dashboards.yaml: |
+        apiVersion: 1
+        providers:
+          - name: homelab
+            type: file
+            disableDeletion: true
+            editable: false
+            options:
+              path: /var/lib/grafana/dashboards
