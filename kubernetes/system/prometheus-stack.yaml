@@ -12,7 +12,31 @@ spec:
     helm:
       values: |
         grafana:
-          enabled: false
+          enabled: true
+
+          ingress:
+            enabled: true
+            ingressClassName: traefik
+            annotations:
+              traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+            hosts:
+              - grafana.clem-ops.org
+            paths:
+              - /
+
+          persistence:
+            enabled: true
+            type: pvc
+            storageClassName: local-path
+            accessModes: ["ReadWriteOnce"]
+            size: 2Gi
+          additionalDataSources:
+            - name: Loki
+              type: loki
+              access: proxy
+              url: http://loki.loki.svc.cluster.local:3100
+              isDefault: false
+
         prometheus:
           prometheusSpec:
             serviceMonitorSelectorNilUsesHelmValues: false
