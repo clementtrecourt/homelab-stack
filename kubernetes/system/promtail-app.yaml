@@ -16,6 +16,13 @@ spec:
             - url: http://loki.loki.svc.cluster.local:3100/loki/api/v1/push
         serviceMonitor:
           enabled: true
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
   destination:
     server: https://kubernetes.default.svc
     namespace: loki
