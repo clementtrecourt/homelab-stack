@@ -4,7 +4,6 @@ metadata:
   name: loki-dashboard
   namespace: monitoring
   labels:
-    # C'est ce label qui permet au sidecar de Grafana de l'auto-découvrir
     grafana_dashboard: "1"
 data:
   loki-dashboard.json: |-
