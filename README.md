@@ -55,6 +55,23 @@ Cluster : 1 Master (control plane dédié) + 2 Workers
 
 **Flux réseau :** utilisateur → Cloudflare Edge → tunnel chiffré sortant (zéro port ouvert en entrée) → Traefik route vers les services → TLS wildcard via Cert-Manager + Let's Encrypt DNS-01.
 
+
+---
+
+## 🟢 Live Status Page
+
+La disponibilité de cette infrastructure est supervisée en temps réel depuis l'extérieur du cluster et accessible publiquement sans authentification :
+
+👉 **[https://status.clem-ops.org](https://status.clem-ops.org)**
+
+[![Uptime Kuma](https://img.shields.io/badge/Uptime_Kuma-🟢_Live_Status-3db230?style=for-the-badge&logo=statuspage&logoColor=white)](https://status.clem-ops.org)
+
+*(Cette page de statut est hébergée au sein du cluster K3s, routée directement par Cloudflare Tunnel, et configurée pour contourner de manière ciblée la politique d'accès Zero Trust globale via une règle d'exclusion d'identité).*
+
+<p align="center">
+  <img src="docs/status-page-screenshot.png" width="850" alt="Uptime Kuma Live Status Page">
+</p>
+
 ---
 
 ## Stack
