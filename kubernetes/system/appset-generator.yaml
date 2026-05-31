@@ -7,22 +7,22 @@ spec:
   generators:
     - git:
         repoURL: https://github.com/clementtrecourt/homelab-stack.git
-        revision: feat/monitoring
+        revision: master
 
         directories:
           - path: kubernetes/apps/*
   template:
     metadata:
-      name: '{{path.basename}}'
+      name: "{{path.basename}}"
     spec:
       project: default
       source:
         repoURL: https://github.com/clementtrecourt/homelab-stack.git
-        targetRevision: feat/monitoring
-        path: '{{path}}'
+        targetRevision: master
+        path: "{{path}}"
       destination:
         server: https://kubernetes.default.svc
-        namespace: '{{path.basename}}' 
+        namespace: "{{path.basename}}"
       syncPolicy:
         automated:
           prune: true
