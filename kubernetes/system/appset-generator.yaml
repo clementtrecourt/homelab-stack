@@ -7,7 +7,7 @@ spec:
   generators:
     - git:
         repoURL: https://github.com/clementtrecourt/homelab-stack.git
-        revision: feat/k3s-migration
+        revision: feat/monitoring
 
         directories:
           - path: kubernetes/apps/*
@@ -18,7 +18,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/clementtrecourt/homelab-stack.git
-        targetRevision: feat/k3s-migration
+        targetRevision: feat/monitoring
         path: '{{path}}'
       destination:
         server: https://kubernetes.default.svc
