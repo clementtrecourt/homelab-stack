@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-config
+data:
+  Corefile: |
+    .:1053 {
+        errors
+        health {
+           lameduck 5s
+        }
+        ready
+        etcd clem-ops.org {
+            path /skydns
+            endpoint http://dns-etcd:2379
+        }
+        forward . 1.1.1.1 1.0.0.1
+        cache 30
+        loop
+        reload
+        loadbalance
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coredns-local
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: coredns-local
+  template:
+    metadata:
+      labels:
+        app: coredns-local
+    spec:
+      containers:
+        - name: coredns
+          image: coredns/coredns:1.10.1
+          args: ["-conf", "/etc/coredns/Corefile"]
+          ports:
+            - containerPort: 1053
+              name: dns-udp
+              protocol: UDP
+            - containerPort: 1053
+              name: dns-tcp
+              protocol: TCP
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/coredns
+          resources:
+            limits:
+              cpu: "100m"
+              memory: "48Mi"
+            requests:
+              cpu: "20m"
+              memory: "24Mi"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: coredns-config
+            items:
+              - key: Corefile
+                path: Corefile
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: coredns-local
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 53
+      targetPort: 1053
+      protocol: UDP
+      name: dns-udp
+    - port: 53
+      targetPort: 1053
+      protocol: TCP
+      name: dns-tcp
+  selector:
+    app: coredns-local

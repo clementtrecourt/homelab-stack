@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-dns-local
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: external-dns-local
+  template:
+    metadata:
+      labels:
+        app: external-dns-local
+    spec:
+      serviceAccountName: external-dns-local
+      containers:
+        - name: external-dns
+          image: registry.k8s.io/external-dns/external-dns:v0.13.4
+          args:
+            - --source=ingress
+            - --source=service
+            - --domain-filter=clem-ops.org
+            - --provider=coredns
+            - --registry=noop
+            - --log-level=info
+          env:
+            - name: ETCD_URLS
+              value: http://dns-etcd:2379
+          resources:
+            limits:
+              cpu: "100m"
+              memory: "48Mi"
+            requests:
+              cpu: "10m"
+              memory: "24Mi"
