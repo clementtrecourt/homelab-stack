@@ -35,6 +35,14 @@ spec:
       labels:
         app: coredns-local
     spec:
+      # LES PARAMÈTRES RÉSEAU DE NIVEAU PROFESSIONNEL :
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+
+      # ON FIXE LE POD SUR LE WORKER-2 POUR AVOIR UNE IP DNS ULTRA-STABLE (192.168.1.42)
+      nodeSelector:
+        kubernetes.io/hostname: k3s-worker-2
+
       containers:
         - name: coredns
           image: coredns/coredns:1.10.1
@@ -69,7 +77,7 @@ kind: Service
 metadata:
   name: coredns-local
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
     - port: 53
       targetPort: 1053
