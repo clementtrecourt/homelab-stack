@@ -68,10 +68,6 @@ La disponibilité de cette infrastructure est supervisée en temps réel depuis 
 
 *(Cette page de statut est hébergée au sein du cluster K3s, routée directement par Cloudflare Tunnel, et configurée pour contourner de manière ciblée la politique d'accès Zero Trust globale via une règle d'exclusion d'identité).*
 
-<p align="center">
-  <img src="docs/status-page-screenshot.png" width="850" alt="Uptime Kuma Live Status Page">
-</p>
-
 ---
 
 ## Stack
