@@ -34,8 +34,8 @@ Ce dépôt présente une **infrastructure Kubernetes entièrement automatisée e
 ✅ **Provisionnement Zero-Touch** : Automatisation complète de l'infrastructure du bare metal aux certificats SSL  
 ✅ **GitOps-First** : Configuration déclarative avec ArgoCD ApplicationSets pour la découverte automatique d'applications  
 ✅ **Sécurité-First** : Zéro port exposé, secrets chiffrés, réseau Zero Trust Cloudflare  
-✅ **Optimisation Ressources** : Cluster haute disponibilité sur 16Go RAM avec gestion intelligente des ressources  
-✅ **Patterns Production** : Implémentation de Taints/Tolerations, Resource Quotas et Health Checks
+✅ **Optimisation Ressources** : Cluster Single-Master sur 16Go RAM avec gestion intelligente des ressources  
+✅ **Patterns Production** : Implémentation de Resource Quotas, Health Checks et stack d'observabilité complète
 
 ---
 
@@ -51,8 +51,8 @@ graph TB
     end
     
     subgraph "Cluster Kubernetes - K3s"
-        subgraph "Control Plane (Protégé)"
-            Master[🎛️ K3s Master Node<br/>NoSchedule Taint]
+        subgraph "Control Plane"
+            Master[🎛️ K3s Master Node<br/>1 nœud]
         end
         
         subgraph "Couche Ingress"
@@ -62,15 +62,18 @@ graph TB
         
         subgraph "Couche Application"
             ArgoCD[📦 ArgoCD<br/>GitOps Engine]
-            Directus[🎨 Directus v11<br/>Headless CMS]
+            UptimeKuma[📡 Uptime Kuma<br/>Monitoring Disponibilité]
             Jellyfin[🎬 Jellyfin<br/>Serveur Média]
         end
-      
         
         subgraph "Sécurité & Observabilité"
             SealedSecrets[🔐 Sealed Secrets]
             CertManager[📜 Cert-Manager]
-            Victoria[📊 VictoriaMetrics]
+            PLG[📊 Prometheus + Loki + Grafana]
+        end
+
+        subgraph "Stockage"
+            NFS[🗄️ NFS Share<br/>192.168.1.120:/data]
         end
     end
     
@@ -78,11 +81,12 @@ graph TB
     CF -->|Tunnel Chiffré| CFT
     CFT -->|HTTP:80| Traefik
     Traefik --> ArgoCD
-    Traefik --> Directus
+    Traefik --> UptimeKuma
     Traefik --> Jellyfin
     CertManager -->|Challenge DNS-01| CF
-    ArgoCD -.->|Gère| Directus
+    ArgoCD -.->|Gère| UptimeKuma
     ArgoCD -.->|Gère| Jellyfin
+    Jellyfin -->|Config PV| NFS
 ```
 
 ### Flux Réseau
@@ -91,6 +95,10 @@ graph TB
 2. **Tunnel Zero Trust** : Cloudflare → Cluster (aucun port entrant)
 3. **Ingress** : Traefik route vers les services avec terminaison TLS
 4. **Application** : Workloads conteneurisés avec limites de ressources
+
+### Architecture du Cluster
+
+Le cluster est composé d'**un nœud Master (control plane)** et de **deux nœuds Workers**, ce qui est adapté à un environnement homelab à ressources modérées. Il ne s'agit pas d'une configuration multi-master HA au niveau du control plane, mais d'une architecture Single-Master robuste avec workloads distribués sur les workers.
 
 ---
 
@@ -110,12 +118,12 @@ graph TB
 <tr>
 <td>⚙️ Configuration</td>
 <td>Ansible (Role-based)</td>
-<td>Hardening OS, installation K3s, politiques de sécurité</td>
+<td>Hardening OS, installation K3s, montage NFS</td>
 </tr>
 <tr>
 <td>☸️ Orchestration</td>
 <td>K3s (Kubernetes Léger)</td>
-<td>Orchestration conteneurs avec control plane Isolé</td>
+<td>Orchestration conteneurs, 1 Master + 2 Workers</td>
 </tr>
 <tr>
 <td>🔄 GitOps</td>
@@ -134,13 +142,18 @@ graph TB
 </tr>
 <tr>
 <td>📊 Monitoring</td>
-<td>VictoriaMetrics + Grafana</td>
-<td>Collection métriques et visualisation</td>
+<td>kube-prometheus-stack + Loki + Grafana</td>
+<td>Métriques (Prometheus), logs (Loki/Promtail), dashboards (Grafana)</td>
 </tr>
 <tr>
 <td>🎨 Applications</td>
-<td>Directus v11, Jellyfin</td>
-<td>CMS Headless, streaming média</td>
+<td>Uptime Kuma, Jellyfin</td>
+<td>Monitoring disponibilité, streaming média</td>
+</tr>
+<tr>
+<td>🗄️ Stockage</td>
+<td>NFS + hostPath</td>
+<td>Volumes persistants Jellyfin via partage NFS monté sur workers</td>
 </tr>
 </table>
 
@@ -166,8 +179,8 @@ cd infrastructure/
 2. **Phase Ansible**
    - Applique hardening OS (sysctl, UFW, clés SSH)
    - Désactive swap pour conformité Kubernetes
-   - Installe K3s avec configuration haute disponibilité
-   - Configure taint du nœud master (NoSchedule)
+   - Monte le partage NFS (`192.168.1.120:/data`) dans `/mnt/data` sur les workers (rôle `nfs_client`)
+   - Installe K3s (1 Master + 2 Workers)
 
 3. **Phase Kubernetes**
    - Déploie services core (Sealed Secrets, Cert-Manager)
@@ -192,10 +205,13 @@ cd infrastructure/
 │   │   ├── argocd/
 │   │   ├── sealed-secrets/
 │   │   └── cert-manager/
-│   ├── apps/               # Manifestes applications
-│   │   ├── directus/
+│   ├── apps/               # Manifestes applications (branche: feat/monitoring)
+│   │   ├── uptime-kuma/
 │   │   └── jellyfin/
-│   │   
+│   ├── system/             # Stack monitoring (branche: feat/k3s-migration)
+│   │   ├── prometheus-stack.yaml
+│   │   ├── loki-app.yaml
+│   │   └── promtail-app.yaml
 │   └── infrastructure/     # Services plateforme
 │       ├── traefik/
 │       ├── cloudflare-tunnel/
@@ -283,17 +299,24 @@ metadata:
 spec:
   generators:
     - git:
-        repoURL: https://github.com/votreutilisateur/k3s-homelab
+        repoURL: https://github.com/clementtrecourt/k3s-homelab
+        revision: feat/monitoring        # branche apps
         directories:
           - path: kubernetes/apps/*
   template:
     spec:
       source:
-        repoURL: https://github.com/votreutilisateur/k3s-homelab
+        repoURL: https://github.com/clementtrecourt/k3s-homelab
         path: '{{path}}'
       destination:
         server: https://kubernetes.default.svc
 ```
+
+> **Note sur les branches** : Le dépôt utilise deux branches actives dans les définitions ArgoCD :
+> - `feat/k3s-migration` → composants système (`kubernetes/system/`, via `root-app.yaml`)
+> - `feat/monitoring` → applications utilisateur (`kubernetes/apps/`, via `appset-generator.yaml`)
+>
+> S'assurer que ces deux branches sont synchronisées sur le dépôt distant pour éviter les erreurs de réconciliation ArgoCD.
 
 **Avantages :**
 - 🚀 Déployer nouvelles apps en ajoutant un dossier (pas de configuration manuelle ArgoCD)
@@ -307,14 +330,8 @@ spec:
 
 ### Excellence avec Ressources Contraintes (16Go RAM)
 
-#### 1. **Protection Nœud Master**
-```yaml
-# Taint empêche workloads applicatifs sur control plane
-taints:
-  - key: node-role.kubernetes.io/master
-    effect: NoSchedule
-```
-**Impact** : Stabilité garantie durant pics de charge applicatifs
+#### 1. **Isolation Control Plane**
+Le nœud Master est dédié au control plane K3s. Les workloads applicatifs s'exécutent exclusivement sur les deux Workers, garantissant la stabilité du plan de contrôle durant les pics de charge.
 
 #### 2. **Gestion Mémoire**
 ```yaml
@@ -331,7 +348,7 @@ resources:
 
 #### 3. **Distribution Intelligente des Pods**
 - Règles d'affinité de nœuds pour services critiques
-- PodDisruptionBudgets pour haute disponibilité
+- PodDisruptionBudgets pour résilience applicative
 - Horizontal Pod Autoscaling pour workloads dynamiques
 
 #### 4. **Démarrage Optimisé**
@@ -340,6 +357,25 @@ resources:
 failurePolicy: Ignore
 ```
 **Impact** : Prévient deadlocks durant bootstrap cluster
+
+#### 5. **Stockage Jellyfin (NFS + hostPath)**
+Jellyfin utilise un PersistentVolume NFS pour sa configuration (`192.168.1.120:/data/library`) et un volume `hostPath` pour les médias (`/mnt/data/library`). Le rôle Ansible `nfs_client` s'assure que le partage est monté sur les workers avant le déploiement du pod.
+
+---
+
+## 📊 Monitoring & Observabilité
+
+### Stack PLG — Implémentée
+
+- ✅ **Prometheus** (via `kube-prometheus-stack`) : Scraping métriques cluster, Prometheus Operator, Alertmanager
+- ✅ **Loki + Promtail** : Centralisation et agrégation des logs applicatifs
+- ✅ **Grafana** : Dashboards métriques et logs (dashboard Loki personnalisé inclus)
+- ✅ **Interface ArgoCD** : Suivi déploiements applications
+
+### Prévu
+- 🔄 Intégration AlertManager avec Slack/Discord
+- 🔄 Tracing distribué (Jaeger/Tempo)
+- 🔄 Dashboard Kubernetes Overview
 
 ---
 
@@ -359,7 +395,7 @@ failurePolicy: Ignore
 - ✅ Gestion Secrets (Sealed Secrets)
 - ✅ Service Mesh & Ingress (Traefik)
 - ✅ Gestion Certificats (Cert-Manager)
-- ✅ Monitoring & Observabilité
+- ✅ Monitoring & Observabilité (PLG Stack)
 - ✅ Sécurité Réseau (Zero Trust)
 
 </td>
@@ -371,7 +407,7 @@ failurePolicy: Ignore
 - ✅ Provisionnement Automatisé
 - ✅ Hardening Sécurité
 - ✅ Optimisation Ressources
-- ✅ Design Haute Disponibilité
+- ✅ Architecture Single-Master K3s
 - ✅ Plan Disaster Recovery
 - ✅ Excellence Documentation
 - ✅ Contrôle Version (Git)
@@ -391,6 +427,7 @@ failurePolicy: Ignore
 - Hyperviseur Proxmox (accessible via SSH)
 - Compte Cloudflare avec token API (permissions édition DNS)
 - Clé publique Sealed Secrets (`pub-sealed-secrets.pem`)
+- Partage NFS disponible sur `192.168.1.120:/data`
 
 ### Étapes de Déploiement
 
@@ -422,7 +459,7 @@ watch kubectl get pods -A
 
 ### Timeline de Déploiement Attendue
 - ⏱️ **5 minutes** : Provisionnement VMs (Terraform)
-- ⏱️ **3 minutes** : Configuration OS (Ansible)
+- ⏱️ **3 minutes** : Configuration OS + montage NFS (Ansible)
 - ⏱️ **2 minutes** : Initialisation cluster K3s
 - ⏱️ **5 minutes** : ArgoCD et services core
 - ⏱️ **3-10 minutes** : Déploiements applications
@@ -431,27 +468,12 @@ watch kubectl get pods -A
 
 ---
 
-## 📊 Monitoring & Observabilité
-
-### Implémenté
-- ✅ **VictoriaMetrics** : Métriques légères compatibles Prometheus
-- ✅ **Kubernetes Dashboard** : Gestion visuelle cluster
-- ✅ **Interface ArgoCD** : Suivi déploiements applications
-
-### Prévu
-- 🔄 Dashboards Grafana (métriques nœuds, santé applications)
-- 🔄 Agrégation logs Loki
-- 🔄 Intégration AlertManager avec Slack/Discord
-- 🔄 Tracing distribué (Jaeger)
-
----
-
 ## 🎓 Apprentissages
 
 Ce projet démontre une expérience pratique avec :
 
 1. **Orchestration multi-outils** : Terraform, Ansible, Kubernetes, Git travaillant ensemble
-2. **Patterns niveau production** : Taints, quotas ressources, health checks, logique retry
+2. **Patterns niveau production** : Quotas ressources, health checks, logique retry, stack PLG
 3. **Mentalité sécurité-first** : Aucun port exposé, secrets chiffrés, automatisation certificats
 4. **Optimisation ressources** : Exécution workloads entreprise sur matériel limité
 5. **Philosophie GitOps** : Git comme source unique de vérité pour l'état infrastructure
