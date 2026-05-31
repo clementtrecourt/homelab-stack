@@ -29,10 +29,10 @@ spec:
           resources: # Consomme ~35Mo de RAM
             limits:
               cpu: "100m"
-              memory: "64Mi"
+              memory: "128Mi"
             requests:
               cpu: "30m"
-              memory: "32Mi"
+              memory: "64Mi"
       volumes:
         - name: etcd-ram-storage
           emptyDir:
