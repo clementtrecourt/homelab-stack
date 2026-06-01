@@ -7,7 +7,7 @@ spec:
   generators:
     - git:
         repoURL: https://github.com/clementtrecourt/homelab-stack.git
-        revision: master
+        revision: feat/observability-slo
 
         directories:
           - path: kubernetes/apps/*
@@ -18,7 +18,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/clementtrecourt/homelab-stack.git
-        targetRevision: master
+        targetRevision: feat/observability-slo
         path: "{{path}}"
       destination:
         server: https://kubernetes.default.svc
