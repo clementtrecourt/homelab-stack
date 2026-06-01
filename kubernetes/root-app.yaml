@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: "https://github.com/clementtrecourt/homelab-stack.git"
-    targetRevision: feat/k3s-migration
+    targetRevision: feat/observability-slo
     path: kubernetes/system
     directory:
       recurse: true
