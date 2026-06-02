@@ -31,8 +31,11 @@ spec:
         credentials:
           useSecret: true
           name: velero-credentials
-
         deployNodeAgent: true
+        kubectl:
+          image:
+            repository: docker.io/bitnami/kubectl
+            tag: 1.30.1
   destination:
     server: https://kubernetes.default.svc
     namespace: velero
