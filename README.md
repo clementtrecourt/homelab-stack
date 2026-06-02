@@ -143,7 +143,20 @@ cd k3s-homelab/infrastructure
 ─────────────────────────────────────────
 ~20 min  de zéro à production
 ```
+---
+## 📊 SRE — Service Level Objectives (SLO)
 
+Pour mesurer l'exploitabilité réelle de mon Homelab, j'ai défini des indicateurs de niveau de service (**SLI**) et des objectifs (**SLO**) basés sur les principes du *Google SRE Book*.
+
+### 1. Disponibilité globale de l'Ingress (Traefik)
+*   **Indicateur (SLI) :** % de requêtes HTTP qui retournent un code de succès (hors erreurs `5xx` du serveur).
+    *   *Formule :* `Requêtes réussies (codes 2xx, 3xx, 4xx) / Total des requêtes`
+*   **Objectif (SLO) :** **99.5%** sur une période glissante de 30 jours.
+*   **Budget d'Erreur (Error Budget) :** **0.5%** (soit environ 3.6 heures d'indisponibilité totale ou d'erreurs autorisées par mois).
+
+### 2. Performance & Latence (Jellyfin / Uptime Kuma)
+*   **Indicateur (SLI) :** % de requêtes HTTP résolues en moins de 500 ms.
+*   **Objectif (SLO) :** **95.0%** des requêtes sur 30 jours.
 ---
 
 ## Sécurité

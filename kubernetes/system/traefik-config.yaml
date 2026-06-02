@@ -8,7 +8,12 @@ spec:
     global:
       checkNewVersion: false
       sendAnonymousUsage: false
-    
+      metrics:
+        prometheus:
+          entryPoint: metrics
+          serviceMonitor:
+            enabled: true
+            namespace: kube-system
     logs:
       general:
         level: INFO
@@ -31,8 +36,8 @@ spec:
         expose:
           default: true
         exposedPort: 80
-      
-      
+
+
       websecure:
         port: 8443
         expose:
@@ -46,7 +51,7 @@ spec:
     tlsOptions:
       default:
         minVersion: VersionTLS13
-        sniStrict: false 
+        sniStrict: false
 
     persistence:
       enabled: true
