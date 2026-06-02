@@ -11,10 +11,8 @@ spec:
 
     metrics:
       prometheus:
-        entryPoint: metrics
-        serviceMonitor:
-          enabled: true
-          namespace: kube-system
+        addRoutersLabels: true
+        addServicesLabels: true
     logs:
       general:
         level: INFO
@@ -32,11 +30,23 @@ spec:
           enabled: true
 
     ports:
+      traefik:
+        port: 9000
+        expose: true
       web:
         port: 8000
         expose:
           default: true
         exposedPort: 80
+      websecure:
+        port: 8443
+        expose:
+          default: true
+        exposedPort: 443
+        http3:
+          enabled: true
+        tls:
+          enabled: true
 
 
       websecure:
