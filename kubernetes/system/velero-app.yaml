@@ -30,7 +30,7 @@ spec:
           volumeSnapshotLocation: []
         credentials:
           useSecret: true
-          existingSecret: velero-credentials
+          existingSecret: velero-cloudflare-r2
         deployNodeAgent: true
         upgradeCRDs: false
   destination:
