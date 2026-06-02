@@ -27,7 +27,7 @@ spec:
                 region: us-east-1
                 s3ForcePathStyle: true
                 s3Url: https://06b18dd79d4024c8265b6e86ca0762b5.r2.cloudflarestorage.com
-
+          volumeSnapshotLocation: []
         credentials:
           useSecret: true
           name: velero-credentials
