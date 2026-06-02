@@ -8,12 +8,13 @@ spec:
     global:
       checkNewVersion: false
       sendAnonymousUsage: false
-      metrics:
-        prometheus:
-          entryPoint: metrics
-          serviceMonitor:
-            enabled: true
-            namespace: kube-system
+
+    metrics:
+      prometheus:
+        entryPoint: metrics
+        serviceMonitor:
+          enabled: true
+          namespace: kube-system
     logs:
       general:
         level: INFO
