@@ -1,0 +1,37 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: velero
+
+resources:
+  - velero-credentials.sealed.yaml
+
+helmCharts:
+  - name: velero
+    repo: https://vmware-tanzu.github.io/helm-charts
+    version: 5.3.0
+    releaseName: velero
+    namespace: velero
+    valuesInline:
+      initContainers:
+        - name: velero-plugin-for-aws
+          image: velero/velero-plugin-for-aws:v1.6.0
+          volumeMounts:
+            - mountPath: /target
+              name: plugins
+
+      configuration:
+        provider: aws
+        backupStorageLocation:
+          - name: default
+            provider: aws
+            bucket: k3s-velero-backups
+            config:
+              region: us-east-1
+              s3ForcePathStyle: true
+              s3Url: https://06b18dd79d4024c8265b6e86ca0762b5.r2.cloudflarestorage.com
+
+      credentials:
+        useSecret: true
+        name: velero-credentials
+      deployNodeAgent: true
