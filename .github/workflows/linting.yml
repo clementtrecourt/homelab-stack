@@ -61,6 +61,10 @@ jobs:
       - name: Install Ansible Lint
         run: pip install ansible-lint
 
+      - name: Create fake vault password file for linting
+        working-directory: infrastructure/ansible
+        run: echo "fake_password_for_ci" > .vault_pass
+
       - name: Run Ansible Lint
         working-directory: infrastructure/ansible
         run: ansible-lint -q
