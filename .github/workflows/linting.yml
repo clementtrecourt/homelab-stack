@@ -18,7 +18,6 @@ jobs:
         uses: stackrox/kube-linter-action@v1.0.4
         with:
           directory: kubernetes/
-          config: .kube-linter.yaml
         continue-on-error: true
 
   terraform-lint:
