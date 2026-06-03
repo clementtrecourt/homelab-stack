@@ -14,15 +14,15 @@ spec:
         app: cloudflared
     spec:
       containers:
-      - name: cloudflared
-        image: cloudflare/cloudflared:latest
-        args:
-        - tunnel
-        - run
+        - name: cloudflared
+          image: cloudflare/cloudflared:2026.5.2
+          args:
+            - tunnel
+            - run
 
-        env:
-        - name: TUNNEL_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: cloudflare-tunnel-token
-              key: token
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflare-tunnel-token
+                  key: token
