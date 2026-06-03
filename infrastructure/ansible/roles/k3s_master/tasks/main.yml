@@ -1,35 +1,42 @@
 ---
 - name: Créer le dossier de configuration K3s
-  file:
+  ansible.builtin.file:
     path: /etc/rancher/k3s
     state: directory
     mode: "0755"
+    owner: root
+    group: root
 
 - name: Déposer la configuration K3s Master
-  template:
+  ansible.builtin.template:
     src: config.yaml.j2
     dest: /etc/rancher/k3s/config.yaml
+    mode: "0644"
+    owner: root
+    group: root
 
 - name: Installer K3s sur le Master
-  shell: curl -sfL https://get.k3s.io | sh -
+  ansible.builtin.shell:
+    cmd: curl -sfL https://get.k3s.io | sh -
+    executable: /bin/bash
   args:
     creates: /usr/local/bin/k3s
   environment:
     INSTALL_K3S_EXEC: "server"
 
 - name: Wait for K3s API to be ready
-  wait_for:
+  ansible.builtin.wait_for:
     host: "{{ ansible_host }}"
     port: 6443
     delay: 10
     timeout: 120
 
 - name: Récupérer le Token
-  slurp:
+  ansible.builtin.slurp:
     src: /var/lib/rancher/k3s/server/node-token
-  register: k3s_token_base64
+  register: k3s_master_token_base64
 
 - name: Sauvegarder le token dans les facts
-  set_fact:
-    k3s_token: "{{ k3s_token_base64.content | b64decode | trim }}"
-    cacheable: yes
+  ansible.builtin.set_fact:
+    k3s_master_token: "{{ k3s_master_token_base64.content | b64decode | trim }}"
+    cacheable: true
