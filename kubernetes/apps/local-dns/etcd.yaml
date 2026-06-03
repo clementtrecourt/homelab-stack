@@ -11,7 +11,13 @@ spec:
     metadata:
       labels:
         app: dns-etcd
+
     spec:
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        runAsNonRoot: true
       containers:
         - name: etcd
           image: registry.k8s.io/etcd:3.5.6-0
@@ -23,6 +29,9 @@ spec:
           ports:
             - containerPort: 2379
               name: client
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
           volumeMounts:
             - name: etcd-ram-storage
               mountPath: /etcd-data

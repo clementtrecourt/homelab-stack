@@ -8,7 +8,11 @@ spec:
     global:
       checkNewVersion: false
       sendAnonymousUsage: false
-    
+
+    metrics:
+      prometheus:
+        addRoutersLabels: true
+        addServicesLabels: true
     logs:
       general:
         level: INFO
@@ -26,13 +30,25 @@ spec:
           enabled: true
 
     ports:
+      traefik:
+        port: 9000
+        expose: true
       web:
         port: 8000
         expose:
           default: true
         exposedPort: 80
-      
-      
+      websecure:
+        port: 8443
+        expose:
+          default: true
+        exposedPort: 443
+        http3:
+          enabled: true
+        tls:
+          enabled: true
+
+
       websecure:
         port: 8443
         expose:
@@ -46,7 +62,7 @@ spec:
     tlsOptions:
       default:
         minVersion: VersionTLS13
-        sniStrict: false 
+        sniStrict: false
 
     persistence:
       enabled: true
