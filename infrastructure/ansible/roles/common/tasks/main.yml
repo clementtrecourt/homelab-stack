@@ -1,38 +1,44 @@
 ---
 - name: Mise à jour du cache apt et upgrade
-  apt:
-    update_cache: yes
+  ansible.builtin.apt:
+    update_cache: true
     upgrade: dist
   register: apt_upgrade_result
 
 - name: Reboot si nécessaire après upgrade
-  reboot:
+  ansible.builtin.reboot:
     reboot_timeout: 120
     connect_timeout: 10
     post_reboot_delay: 15
   when: apt_upgrade_result.changed
 
 - name: Installation des paquets de base
-  apt:
-    name: [curl, ufw, python3-pip, htop, unattended-upgrades, open-iscsi]
+  ansible.builtin.apt:
+    name:
+      - curl
+      - ufw
+      - python3-pip
+      - htop
+      - unattended-upgrades
+      - open-iscsi
     state: present
 
 - name: Désactivation de la SWAP (requis par K3s)
-  command: swapoff -a
+  ansible.builtin.command: swapoff -a
   when: ansible_swaptotal_mb > 0
 
 - name: Suppression de la SWAP du fichier fstab
-  replace:
+  ansible.builtin.replace:
     path: /etc/fstab
     regexp: '^([^#].*?\sswap\s+.*)$'
     replace: '# \1'
 
 - name: Hardening Kernel (Sysctl)
-  sysctl:
+  ansible.posix.sysctl:
     name: "{{ item.key }}"
     value: "{{ item.value }}"
     state: present
-    reload: yes
+    reload: true
   with_items:
     - { key: "net.ipv4.ip_forward", value: "1" }
     - { key: "net.ipv4.conf.all.accept_redirects", value: "0" }
@@ -41,7 +47,7 @@
     - { key: "net.ipv6.conf.all.disable_ipv6", value: "0" }
 
 - name: Configuration de UFW (Firewall)
-  ufw:
+  community.general.ufw:
     rule: allow
     port: "{{ item }}"
     proto: any
@@ -56,6 +62,6 @@
     - "443"
 
 - name: Activation de UFW
-  ufw:
+  community.general.ufw:
     state: enabled
     policy: deny

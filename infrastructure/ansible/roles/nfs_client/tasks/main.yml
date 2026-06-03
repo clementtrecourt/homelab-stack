@@ -3,13 +3,15 @@
   ansible.builtin.apt:
     name: nfs-common
     state: present
-    update_cache: yes
+    update_cache: true
 
 - name: Créer le point de montage
   ansible.builtin.file:
     path: "{{ mount_point }}"
     state: directory
-    mode: '0755'
+    mode: "0755"
+    owner: root
+    group: root
 
 - name: Monter le partage NFS (fstab)
   ansible.posix.mount:
