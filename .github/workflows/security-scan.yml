@@ -2,9 +2,9 @@ name: DevSecOps — Security & IaC Scanning
 
 on:
   push:
-    branches: ["feat/monitoring"]
+    branches: ["*"]
   pull_request:
-    branches: ["feat/monitoring"]
+    branches: ["*"]
 
 jobs:
   trivy-scan:
