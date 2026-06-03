@@ -17,15 +17,15 @@ provider "proxmox" {
 resource "proxmox_lxc" "bastion" {
   target_node  = var.proxmox_node
   hostname     = "bastion-admin"
-  vmid         = 999              # ID 99 pour le distinguer des autres (100+)
+  vmid         = 999 # ID 99 pour le distinguer des autres (100+)
   ostemplate   = var.lxc_template
   unprivileged = true
-  
+
   # Un peu plus de ressources pour faire tourner Ansible/Terraform
-  cores        = 2
-  memory       = 1024
-  swap         = 512
-  
+  cores  = 2
+  memory = 1024
+  swap   = 512
+
   rootfs {
     storage = "local-lvm"
     size    = "8G"
@@ -35,19 +35,19 @@ resource "proxmox_lxc" "bastion" {
   network {
     name   = "eth0"
     bridge = "vmbr0"
-    gw     = "192.168.1.254"    # Ta gateway
-    ip     = "192.168.1.20/24"  # IP Fixe dédiée
+    gw     = "192.168.1.254"   # Ta gateway
+    ip     = "192.168.1.20/24" # IP Fixe dédiée
     ip6    = "auto"
   }
 
   # Accès
   password        = var.root_password
   ssh_public_keys = var.ssh_public_key
-  
+
   features {
     nesting = true
   }
-  
+
   # Empêche Terraform de le détruire par erreur à l'avenir !
   lifecycle {
     prevent_destroy = true

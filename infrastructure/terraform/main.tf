@@ -50,7 +50,7 @@ resource "proxmox_lxc" "ct_group" {
 
   password        = var.root_password
   ssh_public_keys = var.ssh_public_key
-  
+
   network {
     name   = "eth0"
     bridge = "vmbr0"
@@ -81,11 +81,11 @@ resource "proxmox_vm_qemu" "k3s_cluster" {
   # 1. FORCE UEFI & AGENT
   bios    = "ovmf"
   machine = "q35"
-  agent   = 1 
+  agent   = 1
 
   disk {
     slot    = "virtio0"
-    size    = "32G" 
+    size    = "32G"
     type    = "disk"
     storage = "local-lvm"
     discard = true
