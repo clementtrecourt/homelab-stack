@@ -64,6 +64,9 @@ jobs:
         working-directory: infrastructure/ansible
         run: echo "fake_password_for_ci" > .vault_pass
 
+      - name: Install Ansible collections
+        working-directory: infrastructure/ansible
+        run: ansible-galaxy collection install -r requirements.yaml
       - name: Run Ansible Lint
         working-directory: infrastructure/ansible
         run: ansible-lint -q
