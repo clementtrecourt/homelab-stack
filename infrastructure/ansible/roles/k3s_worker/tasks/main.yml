@@ -1,17 +1,20 @@
 ---
 - name: Créer le dossier de configuration K3s
-  file:
+  ansible.builtin.file:
     path: /etc/rancher/k3s
     state: directory
-    mode: '0755'
+    mode: "0755"
+    owner: root
+    group: root
+
 - name: DEBUG TOKEN
-  debug:
+  ansible.builtin.debug:
     var: k3s_shared_token
 
 - name: Installer K3s sur le Worker
-  shell: |
-    curl -sfL https://get.k3s.io | K3S_URL=https://{{ master_ip }}:6443 K3S_TOKEN={{ master_token }} sh -
+  ansible.builtin.shell:
+    cmd: |
+      curl -sfL https://get.k3s.io | K3S_URL=https://{{ master_ip }}:6443 K3S_TOKEN={{ master_token }} sh -
+    executable: /bin/bash
   args:
-    creates: /usr/local/bin/k3s 
-
-
+    creates: /usr/local/bin/k3s
