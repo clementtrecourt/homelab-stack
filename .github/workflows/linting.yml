@@ -1,0 +1,67 @@
+name: CI — Code Quality & Linting
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["*"]
+
+jobs:
+  kubernetes-lint:
+    name: Kubernetes Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Scan Kubernetes manifests with Kube-Linter
+        uses: stackrox/kube-linter-action@v1.0.4
+        with:
+          directory: kubernetes/
+          config: .kube-linter.yaml
+        continue-on-error: true
+
+  terraform-lint:
+    name: Terraform Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive infrastructure/
+        continue-on-error: true
+
+      - name: Terraform Init & Validate (Main)
+        working-directory: infrastructure/terraform
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: Terraform Init & Validate (Bastion)
+        working-directory: infrastructure/terraform-bastion
+        run: |
+          terraform init -backend=false
+          terraform validate
+  ansible-lint:
+    name: Ansible Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Ansible Lint
+        run: pip install ansible-lint
+
+      - name: Run Ansible Lint
+        working-directory: infrastructure/ansible
+        run: ansible-lint -q
+        continue-on-error: true
