@@ -11,6 +11,7 @@ spec:
     metadata:
       labels:
         app: dns-etcd
+
     spec:
       securityContext:
         runAsUser: 1001
