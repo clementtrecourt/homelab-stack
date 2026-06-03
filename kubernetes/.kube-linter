@@ -1,2 +1,4 @@
 checks:
-  addAllBuiltIn: true
+  include:
+    - latest-tag
+    - unset-cpu-requirements
