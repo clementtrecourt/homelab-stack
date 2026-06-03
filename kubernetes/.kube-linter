@@ -5,8 +5,8 @@ checks:
     - unset-memory-requirements
 
   exclude:
-    - no-read-only-root-fs
     - run-as-non-root
+    - no-read-only-root-fs
     - host-network
     - drop-net-raw-capability
     - no-anti-affinity
