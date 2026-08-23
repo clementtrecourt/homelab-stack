@@ -28,7 +28,7 @@ resource "proxmox_lxc" "bastion" {
 
   rootfs {
     storage = "local-lvm"
-    size    = "8G"
+    size    = "20G"
   }
 
   # Réseau
@@ -49,9 +49,9 @@ resource "proxmox_lxc" "bastion" {
   }
 
   # Empêche Terraform de le détruire par erreur à l'avenir !
-  lifecycle {
-    prevent_destroy = true
-  }
+  # lifecycle {
+  #   prevent_destroy = true
+  # }
 }
 
 output "bastion_ip" {

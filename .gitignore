@@ -55,4 +55,4 @@ venv/
 *.pyc
 pub-sealed-secrets.pem
 sealed-secrets-master.key
-sealed-secrets-key.yaml
+sealed-secrets-key.yamlsecret r2
